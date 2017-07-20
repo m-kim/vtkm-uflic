@@ -63,25 +63,30 @@ public:
   FieldType h, h_2;
 };
 
-template <typename FieldEvaluateType, typename FieldType>
+template <typename FieldEvaluateType, typename FieldType, vtkm::IdComponent Size>
 class EulerIntegrator
 {
 public:
   VTKM_EXEC_CONT
-  EulerIntegrator(const FieldEvaluateType& field, FieldType _h)
-    : f(field)
+  EulerIntegrator()
+    : h(0)
+  {
+  }
+  VTKM_EXEC_CONT
+  EulerIntegrator(const FieldEvaluateType& _eval, FieldType _h)
+    : eval(_eval)
     , h(_h)
   {
   }
 
   template <typename PortalType>
-  VTKM_EXEC bool Step(const vtkm::Vec<FieldType, 3>& pos,
+  VTKM_EXEC bool Step(const vtkm::Vec<FieldType, Size>& pos,
                       const PortalType& field,
-                      vtkm::Vec<FieldType, 3>& out) const
+                      vtkm::Vec<FieldType, Size>& out) const
   {
-    vtkm::Vec<FieldType, 3> vCur;
-    f.incrT(h);
-    if (f.Evaluate(pos, field, vCur))
+    vtkm::Vec<FieldType, Size> vCur;
+//    eval.incrT(h);
+    if (eval.Evaluate(pos, field, vCur))
     {
       out = pos + h * vCur;
       return true;
@@ -89,7 +94,7 @@ public:
     return false;
   }
 
-  FieldEvaluateType f;
+  FieldEvaluateType eval;
   FieldType h;
 };
 

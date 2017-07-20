@@ -14,9 +14,18 @@ class DoubleGyreField
 {
 public:
   VTKM_CONT
+  DoubleGyreField()
+    : omega(2 * vtkm::Pi() / 10.0),
+      A(0.1),
+      epsilon(1e-6),
+      t(0.0)
+  {
+  }
+
+  VTKM_CONT
   DoubleGyreField(const vtkm::Bounds& bb)
-    : bounds{ bb },
-      omega(2 * PI / 10.0),
+    : bounds( bb ),
+      omega(2 * vtkm::Pi() / 10.0),
       A(0.1),
       epsilon(1e-6),
       t(0.0)
@@ -32,10 +41,10 @@ public:
                 const PortalType& vtkmNotUsed(vecData),
                 vtkm::Vec<FieldType, 2>& out) const
   {
-    if (!bounds.Contains(pos))
-      return false;
-    out[0] = calcU(pos[0], pos[1], t);
-    out[1] = calcV(pos[0], pos[1], t);
+//    if (!bounds.Contains(pos))
+//      return false;
+    out[0] = pos[0] + calcU(pos[0], pos[1], t);
+    out[1] = pos[1] + calcV(pos[0], pos[1], t);
 
     return true;
   }
@@ -43,35 +52,35 @@ public:
 
 private:
   VTKM_EXEC
-  float a(float t)
+  FieldType a(FieldType t) const
   {
    return epsilon * vtkm::Sin(omega * t);
   }
   VTKM_EXEC
-  float b(float t)
+  FieldType b(FieldType t) const
   {
    return 1 - 2 * epsilon * vtkm::Sin(omega * t);
   }
   VTKM_EXEC
-  float f(float x, float t)
+  FieldType f(FieldType x, FieldType t) const
   {
     return a(t) * x*x + b(t) * x;
   }
   VTKM_EXEC
-  float calcU(float x, float y, float t)
+  FieldType calcU(FieldType x, FieldType y, FieldType t) const
   {
-       return -PI * A * vtkm::Sin(PI*f(x,t)) * vtkm::Cos(PI*y);
+       return -vtkm::Pi() * A * vtkm::Sin(vtkm::Pi()*f(x,t)) * vtkm::Cos(vtkm::Pi()*y);
   }
 
   VTKM_EXEC
-  float calcV(float x, float y, float t)
+  FieldType calcV(FieldType x, FieldType y, FieldType t) const
   {
-    return PI * A * vtkm::Cos(PI*f(x,t)) * vtkm::Sin(PI*y) * (2 * a(t) * x + b(t));
+    return vtkm::Pi() * A * vtkm::Cos(vtkm::Pi()*f(x,t)) * vtkm::Sin(vtkm::Pi()*y) * (2 * a(t) * x + b(t));
   }
 
   vtkm::Bounds bounds;
-  const float omega, A, epsilon;
-  float t;
+  FieldType omega, A, epsilon;
+  FieldType t;
 
 };
 

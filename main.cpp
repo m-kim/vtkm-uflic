@@ -4,6 +4,7 @@
 #include <vtkm/io/writer/VTKDataSetWriter.h>
 #include <vtkm/io/reader/VTKDataSetReader.h>
 #include "Evaluator.h"
+#include "Integrator.h"
 #include "UFLIC.h"
 
 #include <iostream>
@@ -17,38 +18,46 @@ typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
 
 int main(int argc, char **argv)
 {
-  int width, height;
 
-  if (argc < 1){
-      width = height = 256;
 
+  const int Size = 2;
+  typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
+  typedef vtkm::Float32 FieldType;
+
+  typedef vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>> FieldHandle;
+  typedef FieldHandle::template ExecutionTypes<DeviceAdapter>::PortalConst FieldPortalConstType;
+
+  typedef DoubleGyreField<FieldPortalConstType, FieldType> EvalType;
+  typedef EulerIntegrator<EvalType, FieldType, Size> IntegratorType;
+
+  typedef ParticleAdvectionWorklet<IntegratorType, FieldType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
+
+
+
+  std::vector<vtkm::Vec<FieldType, Size>> pl, pr;
+
+  for (int y=0;y<256; y++){
+    for (int x=0; x<256; x++){
+      pl.push_back(vtkm::Vec<FieldType,Size>(x+0.5, y+0.5));
+      pr.push_back(vtkm::Vec<FieldType,Size>(x+0.5, y+0.5));
+    }
   }
-  else{
-      width = height = atoi(argv[1]);
+  vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>> sl, sr;
+  sl = vtkm::cont::make_ArrayHandle(pl);
+  sr = vtkm::cont::make_ArrayHandle(pr);
+
+  vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>> fieldArray;
+  EvalType eval(vtkm::Bounds(0,256,0,256,0,0));
+  IntegratorType integrator(eval, 0.1);
+
+
+  ParticleAdvectionWorkletType worklet(integrator);
+  worklet.Run(sl, sr, fieldArray);
+
+  for (vtkm::Id i = 0; i < sr.GetNumberOfValues(); i++)
+  {
+    vtkm::Vec<FieldType, Size> p = sr.GetPortalConstControl().Get(i);
+    std::cout << p[0] << " " << p[1] << std::endl;
   }
 
-
-//    treePtr = std::shared_ptr<Tree<DeviceAdapter>>(new Tree<DeviceAdapter>());
-
-//    auto t0 = std::chrono::high_resolution_clock::now();
-//    vtkm::rendering::Color bg(0.2f, 0.2f, 0.2f, 1.0f);
-//    vtkm::rendering::CanvasRayTracer canvas(width, height);
-//    MapperRayTracer mapper(csg.GetCellSet(), cntArray, idxArray, vtxArray );
-
-//    vtkm::rendering::Scene scene;
-//    scene.AddActor(vtkm::rendering::Actor(csg.GetCellSet(),
-//                                          csg.GetCoordinateSystem(),
-//                                          csg.GetField("radius"),
-//                                          vtkm::rendering::ColorTable("thermal")));
-
-
-//    view = new vtkm::rendering::View3D(scene, mapper, canvas, bg);
-
-//    view->Initialize();
-//    //glutMainLoop();
-//    view->Paint();
-//    auto t1 = std::chrono::high_resolution_clock::now();
-
-//    std::cout << "Finished " << width << ": " << std::chrono::duration<double>(t1-t0).count() << "s" << std::endl;
-//    view->SaveAs("reg3D.pnm");
 }
