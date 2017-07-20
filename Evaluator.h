@@ -7,6 +7,7 @@
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/DynamicArrayHandle.h>
+#include "Bounds2.h"
 
 
 template <typename PortalType, typename FieldType>
@@ -23,7 +24,7 @@ public:
   }
 
   VTKM_CONT
-  DoubleGyreField(const vtkm::Bounds& bb)
+  DoubleGyreField(const Bounds& bb)
     : bounds( bb ),
       omega(2 * vtkm::Pi() / 10.0),
       A(0.1),
@@ -41,8 +42,8 @@ public:
                 const PortalType& vtkmNotUsed(vecData),
                 vtkm::Vec<FieldType, 2>& out) const
   {
-//    if (!bounds.Contains(pos))
-//      return false;
+    if (!bounds.Contains(pos))
+      return false;
     out[0] = pos[0] + calcU(pos[0], pos[1], t);
     out[1] = pos[1] + calcV(pos[0], pos[1], t);
 
@@ -78,7 +79,7 @@ private:
     return vtkm::Pi() * A * vtkm::Cos(vtkm::Pi()*f(x,t)) * vtkm::Sin(vtkm::Pi()*y) * (2 * a(t) * x + b(t));
   }
 
-  vtkm::Bounds bounds;
+  Bounds bounds;
   FieldType omega, A, epsilon;
   FieldType t;
 

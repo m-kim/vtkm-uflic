@@ -33,6 +33,8 @@ set(UFLIC_SRC
   main.cpp
 )
 set(UFLIC_HDR
+  Bounds2.h
+  Draw.h
   Evaluator.h
   Integrator.h
   UFLIC.h
