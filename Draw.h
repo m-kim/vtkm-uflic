@@ -22,9 +22,11 @@ public:
 
   }
 
-  typedef void ControlSignature(AtomicArrayInOut<FieldType>,
-                                AtomicArrayInOut<FieldType>,
-                                FieldIn<VecType>,
+  //typedef void ControlSignature(AtomicArrayInOut<FieldType>,
+  //                              AtomicArrayInOut<FieldType>,
+	typedef void ControlSignature(WholeArrayInOut<FieldType>,
+																WholeArrayInOut<FieldType>,
+																FieldIn<VecType>,
                                 FieldIn<VecType>,
                                 FieldIn<FieldType>);
   typedef void ExecutionSignature(_1, _2, _3, _4, _5);
@@ -36,22 +38,23 @@ public:
                   const VecType& p2,
                   FieldType val) const {
     vtkm::Vec<FieldType,Size> p = p1;
-    vtkm::Vec<FieldType,Size> d = p2;
-    d -= p1;
+    const vtkm::Vec<FieldType,Size> d = p2 - p;
 
-    float N = vtkm::Max(vtkm::Abs(d.x), vtkm::Abs(d.y));
+    float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
     if (N < 1e-6){
       N = 1;
     }
 
-    vtkm::Vec<FieldType,Size> s(d.x/N, d.y/N);
+    const vtkm::Vec<FieldType,Size> s(d[0]/N, d[1]/N);
 
     for (int i=0; i<N; i++){
       if (bounds.Contains(vtkm::Round(p))){
-        vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p.y))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p.x));
-          canvas.Add(idx, val);//color(255,255,255);
-          omega.Add(idx, 1.0);
-      }
+        vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
+        //canvas.Add(idx, val);//color(255,255,255);
+        //omega.Add(idx, 1.0);
+				canvas.Set(idx, val);//color(255,255,255);
+				omega.Set(idx, 1.0);
+			}
       p += s;
     }
   }
@@ -66,10 +69,7 @@ template < typename FieldType, vtkm::IdComponent Size, typename DeviceAdapterTag
 class DrawLineWorklet
 {
 public:
-  typedef vtkm::cont::ArrayHandle<FieldType> FieldHandle;
-  typedef FieldType ExecutionTypes<DeviceAdapterTag>::Portal
-    FieldPortalType;
-  typedef DrawLine< FieldType,
+	typedef DrawLine< FieldType,
                     Size,
                     DeviceAdapterTag>
     DrawLineWorkletType;
@@ -84,7 +84,8 @@ public:
   template <typename PointStorage, typename FieldStorage>
   VTKM_CONT
   void Run(
-      vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas,
+      vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas0,
+			vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas1,
       vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_omega,
 
       const vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, PointStorage>& _pl,
@@ -93,8 +94,13 @@ public:
   {
     pl = _pl;
     pr = _pr;
-    canvas = _canvas.PrepareForInPlace(DeviceAdapterTag());
-    omega = _omega.PrepareForInPlace(DeviceAdapterTag());
+		canvas[0] = _canvas0;
+		canvas[1] = _canvas1;
+		omega = _omega;
+
+		canvas[0].PrepareForInPlace(DeviceAdapterTag());
+		canvas[1].PrepareForInPlace(DeviceAdapterTag());
+		omega.PrepareForInPlace(DeviceAdapterTag());
     run();
   }
 
@@ -115,7 +121,7 @@ private:
 
     DrawLineWorkletType drawLineWorklet(bounds, dims);
     DrawLineWorkletDispatchType drawLineWorkletDispatch(drawLineWorklet);
-    drawLineWorkletDispatch.Invoke(canvas, omega, pl, pr, canvas);
+    drawLineWorkletDispatch.Invoke(canvas[1], omega, pl, pr, canvas[0]);
   }
 
 
@@ -123,7 +129,7 @@ private:
   vtkm::cont::DataSet ds;
   vtkm::Id maxSteps;
   vtkm::Id ParticlesPerRound;
-  FieldPortalType canvas, omega;
+  vtkm::cont::ArrayHandle<FieldType> canvas[2], omega;
 };
 
 
