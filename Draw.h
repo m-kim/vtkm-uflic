@@ -22,10 +22,13 @@ public:
 
   }
 
-  //typedef void ControlSignature(AtomicArrayInOut<FieldType>,
-  //                              AtomicArrayInOut<FieldType>,
+#if 1
+  typedef void ControlSignature(AtomicArrayInOut<FieldType>,
+                                AtomicArrayInOut<FieldType>,
+#else
 	typedef void ControlSignature(WholeArrayInOut<FieldType>,
 																WholeArrayInOut<FieldType>,
+#endif
 																FieldIn<VecType>,
                                 FieldIn<VecType>,
                                 FieldIn<FieldType>);
@@ -50,10 +53,13 @@ public:
     for (int i=0; i<N; i++){
       if (bounds.Contains(vtkm::Round(p))){
         vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
-        //canvas.Add(idx, val);//color(255,255,255);
-        //omega.Add(idx, 1.0);
+#if 1
+        canvas.Add(idx, val);//color(255,255,255);
+        omega.Add(idx, 1.0);
+#else
 				canvas.Set(idx, val);//color(255,255,255);
 				omega.Set(idx, 1.0);
+#endif
 			}
       p += s;
     }
