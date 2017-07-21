@@ -31,6 +31,8 @@ public:
       epsilon(1e-6),
       t(0.0)
   {
+		dim[0] = bounds.X.Max - bounds.X.Min;
+		dim[1] = bounds.Y.Max - bounds.Y.Min;
   }
 
   VTKM_EXEC
@@ -44,8 +46,8 @@ public:
   {
     if (!bounds.Contains(pos))
       return false;
-    out[0] = pos[0] + calcU(pos[0], pos[1], t);
-    out[1] = pos[1] + calcV(pos[0], pos[1], t);
+    out[0] = pos[0] + calcU(pos[0] / dim[0], pos[1] / dim[1], t);
+    out[1] = pos[1] + calcV(pos[0] / dim[0], pos[1] / dim[1], t);
 
     return true;
   }
@@ -79,6 +81,7 @@ private:
     return vtkm::Pi() * A * vtkm::Cos(vtkm::Pi()*f(x,t)) * vtkm::Sin(vtkm::Pi()*y) * (2 * a(t) * x + b(t));
   }
 
+	vtkm::Id2 dim;
   Bounds bounds;
   FieldType omega, A, epsilon;
   FieldType t;

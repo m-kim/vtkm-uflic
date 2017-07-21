@@ -88,7 +88,7 @@ public:
 //    eval.incrT(h);
     if (eval.Evaluate(pos, field, vCur))
     {
-      out = pos + h * vCur;
+      out = pos + 0.1 * vCur;
       return true;
     }
     return false;

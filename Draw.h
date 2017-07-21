@@ -8,11 +8,11 @@
 #include <vtkm/cont/DataSet.h>
 #include "Bounds2.h"
 
-template <typename FieldType, vtkm::IdComponent Size, typename DeviceAdapterTag>
+template <typename FieldType, typename VecComponentType, vtkm::IdComponent Size, typename DeviceAdapterTag>
 class DrawLine : public vtkm::worklet::WorkletMapField
 {
 public:
-  typedef vtkm::Vec<vtkm::Float32, Size> VecType;
+  typedef vtkm::Vec<VecComponentType, Size> VecType;
 
   DrawLine( Bounds &bb,
         vtkm::Id2 d)
@@ -40,30 +40,30 @@ public:
                   const VecType& p1,
                   const VecType& p2,
                   FieldType val) const {
-    vtkm::Vec<FieldType,Size> p = p1;
-    const vtkm::Vec<FieldType,Size> d = p2 - p;
+    vtkm::Vec<VecComponentType,Size> p = p1;
+    const vtkm::Vec<VecComponentType,Size> d = p2 - p;
 
     float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
     if (N < 1e-6){
       N = 1;
     }
 
-    const vtkm::Vec<FieldType,Size> s(d[0]/N, d[1]/N);
+    const vtkm::Vec<VecComponentType,Size> s(d[0]/N, d[1]/N);
 
     for (int i=0; i<N; i++){
       if (bounds.Contains(vtkm::Round(p))){
         vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
 #if 1
-        canvas.Add(idx, val);//color(255,255,255);
-        omega.Add(idx, 1.0);
+				canvas.Add(idx, val);//color(255,255,255);
+				omega.Add(idx, 1);
 #else
 				canvas.Set(idx, val);//color(255,255,255);
-				omega.Set(idx, 1.0);
+				omega.Set(idx, 1);
 #endif
 			}
       p += s;
     }
-  }
+	}
 private:
   Bounds bounds;
   vtkm::Id2 dim;
@@ -71,11 +71,12 @@ private:
 
 
 
-template < typename FieldType, vtkm::IdComponent Size, typename DeviceAdapterTag>
+template < typename FieldType, typename VecComponentType, vtkm::IdComponent Size, typename DeviceAdapterTag>
 class DrawLineWorklet
 {
 public:
 	typedef DrawLine< FieldType,
+										VecComponentType,
                     Size,
                     DeviceAdapterTag>
     DrawLineWorkletType;
@@ -94,8 +95,8 @@ public:
 			vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas1,
       vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_omega,
 
-      const vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, PointStorage>& _pl,
-      const vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, PointStorage>& _pr
+      const vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>, PointStorage>& _pl,
+      const vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>, PointStorage>& _pr
     )
   {
     pl = _pl;
@@ -131,7 +132,7 @@ private:
   }
 
 
-  vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>> pl, pr;
+  vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>> pl, pr;
   vtkm::cont::DataSet ds;
   vtkm::Id maxSteps;
   vtkm::Id ParticlesPerRound;
