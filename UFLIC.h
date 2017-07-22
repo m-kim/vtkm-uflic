@@ -31,7 +31,6 @@
 #include <vtkm/exec/ExecutionObjectBase.h>
 
 #include <vtkm/worklet/DispatcherMapField.h>
-#include <vtkm/worklet/particleadvection/Particles.h>
 
 
 

@@ -37,6 +37,7 @@ set(UFLIC_HDR
   Draw.h
   Evaluator.h
   Integrator.h
+  Sharpen.h
   UFLIC.h
 )
 add_executable(UFLIC_rendering_Serial ${UFLIC_SRC} ${UFLIC_HDR})
