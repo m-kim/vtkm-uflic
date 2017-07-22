@@ -15,6 +15,7 @@
 #include "Integrator.h"
 #include "UFLIC.h"
 #include "Draw.h"
+#include "Sharpen.h"
 
 
 #include <iostream>
@@ -84,8 +85,8 @@ int main(int argc, char **argv)
 
   vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecArray;
   EvalType eval(Bounds(0,dim[1],0,dim[1]));
-  IntegratorType integrator(eval, 1.0);
-
+  IntegratorType integrator(eval, 3.0);
+	
 
   ParticleAdvectionWorkletType advect(integrator);
   advect.Run(sl, sr, VecArray);
@@ -110,18 +111,19 @@ int main(int argc, char **argv)
 		canvas[1][i] = 0;
 	}
 
-	//canvas[0][64 * 128 + 64] = 255;
   vtkm::cont::ArrayHandle<FieldType > canvasArray[2], omegaArray;
   canvasArray[0] = vtkm::cont::make_ArrayHandle(&canvas[0][0], canvas[0].size());
 	canvasArray[1] = vtkm::cont::make_ArrayHandle(&canvas[1][0], canvas[1].size());
 	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
   DrawLineWorkletType drawline(ds);
   drawline.Run(canvasArray[0], canvasArray[1], omegaArray,sl,sr);
-	drawline.Run(canvasArray[1], canvasArray[0], omegaArray, sl, sr);
-	drawline.Run(canvasArray[0], canvasArray[1], omegaArray, sl, sr);
+
+	DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
+	dosharp.Run(canvasArray[1], canvasArray[0]);
+	
 
 
-	saveAs("uflic.pnm", canvasArray[1], omegaArray, dim[0], dim[1]);
+	saveAs("uflic.pnm", canvasArray[0], omegaArray, dim[0], dim[1]);
 	//vtkm::rendering::Mapper mapper;
 	//vtkm::rendering::Canvas canvas(512, 512);
 	//vtkm::rendering::Scene scene;
