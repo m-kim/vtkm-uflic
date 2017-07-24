@@ -9,7 +9,7 @@
 #include <vtkm/rendering/Mapper.h>
 #include <vtkm/rendering/Scene.h>
 #include <fstream>
-#include <string>
+#include <sstream>
 
 #include "Evaluator.h"
 #include "Integrator.h"
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 		canvas[i].resize(dim[0] * dim[1], 0);
 	}
 	for (int i = 0; i < canvas[0].size(); i++) {
-		tex[i] = canvas[0][i] = rand() % 256;
+		tex[i] = canvas[0][i] = rand() % 255;
 	}
 
 	vtkm::cont::ArrayHandle<FieldType > canvasArray[ttl], propFieldArray[2], omegaArray, texArray;
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 		}
 		//reset the current canvas
 		for (int i = 0; i < canvasArray[loop % ttl].GetNumberOfValues(); i++) {
-			canvasArray[loop % ttl].GetPortalControl().Set(i, rand() % 256);
+			canvasArray[loop % ttl].GetPortalControl().Set(i, rand() % 255);
 		}
 
 		for (int i = 0; i < propFieldArray[0].GetNumberOfValues(); i++) {
@@ -150,17 +150,18 @@ int main(int argc, char **argv)
 		sr.swap(sl);
 
 		donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
+		std::stringstream fn;
+		fn << "uflic-" << loop << ".pnm";
+		saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
 
 		//REUSE omegaArray as a temporary cache to sharpen
 		dosharp.Run(propFieldArray[1], omegaArray);
-
-		dojitter.Run(omegaArray, texArray, canvasArray[(loop + 1) % ttl]);
+		dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
 
 	}
 
 
-	saveAs("uflic.pnm", propFieldArray[1], dim[0], dim[1]);
 	//vtkm::rendering::Mapper mapper;
 	//vtkm::rendering::Canvas canvas(512, 512);
 	//vtkm::rendering::Scene scene;

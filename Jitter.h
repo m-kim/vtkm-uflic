@@ -10,10 +10,14 @@
 class Jitter : public vtkm::worklet::WorkletMapField
 {
 public:
-	Jitter(vtkm::Id2 &_d)
+	Jitter(vtkm::Id2 &_d,
+				vtkm::IdComponent bitsize,
+				vtkm::Float32 clampLow,
+				vtkm::Float32 clampHigh)
 		:dim(_d),
-		clampingLowerBound(0.1),
-		clampingUpperBound(0.9)
+		BitSize(bitsize),
+		clampingLowerBound(clampLow),
+		clampingUpperBound(clampHigh)
 	{
 
 	}
@@ -47,27 +51,27 @@ public:
 		x = idx % dim[0];
 		reval = data[idx];
 		if (y > 0 && y < dim[1] - 1 && x > 0 && x < dim[0] - 1) {
-			FieldOutType rnd = tex[getIdx(x, y)];
-			if (rnd > 0.5)
-				rnd -= 0.5;
+			FieldOutType rnd = tex[idx];
+			if (rnd > BitSize / 2)
+				rnd -= BitSize / 2;
 
-			if (reval > 0.5)
-				reval = 0.5 + rnd;
+			if (reval > BitSize / 2)
+				reval = BitSize / 2 + rnd;
 			else
 				reval = rnd;
 
 			if (reval > clampingUpperBound)
-				reval = 1;
+				reval = BitSize;
 			else if (reval < clampingLowerBound)
 				reval = 0;
-			else
-				reval = (reval - clampingLowerBound) / (clampingUpperBound - clampingLowerBound);
+			//else
+			//	reval = (reval - clampingLowerBound) / (clampingUpperBound - clampingLowerBound);
 		}
 	}
 
 	vtkm::Id2 dim;
-	vtkm::Float32 clampingLowerBound, clampingUpperBound;
-
+	vtkm::IdComponent clampingLowerBound, clampingUpperBound;
+	vtkm::IdComponent BitSize;
 };
 
 template<typename FieldType, typename DeviceAdapter>
@@ -87,7 +91,7 @@ public:
 		typedef typename vtkm::worklet::DispatcherMapField<Jitter>
 			JitterWorkletDispatchType;
 
-		Jitter JitterWorklet(dim);
+		Jitter JitterWorklet(dim, 256, 256 * 0.1, 256 * 0.9);
 		JitterWorkletDispatchType dispatch(JitterWorklet);
 		in.PrepareForInPlace(DeviceAdapter());
 		out.PrepareForInPlace(DeviceAdapter());
