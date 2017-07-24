@@ -23,7 +23,6 @@
 
 #include <vtkm/Types.h>
 #include <vtkm/cont/ArrayHandle.h>
-#include <vtkm/cont/ArrayHandleCounting.h>
 #include <vtkm/cont/CellSetExplicit.h>
 #include <vtkm/cont/CellSetStructured.h>
 #include <vtkm/cont/DataSet.h>

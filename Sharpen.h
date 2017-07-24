@@ -53,6 +53,7 @@ public:
 
 
 		reval =static_cast<FieldOutType>(9)*center - left_up - up - right_up - left - right - left_down - down - right_down;
+		reval = vtkm::Min(reval, 0);
 	}
 
 	vtkm::Id2 dim;

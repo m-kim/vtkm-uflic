@@ -37,6 +37,7 @@ set(UFLIC_HDR
   Draw.h
   Evaluator.h
   Integrator.h
+  Jitter.h
   Normalize.h
   Sharpen.h
   UFLIC.h
