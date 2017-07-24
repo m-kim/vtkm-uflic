@@ -48,15 +48,95 @@ public:
                       const PortalType& field,
                       vtkm::Vec<FieldType, Size>& out) const
   {
-    vtkm::Vec<FieldType, Size> k1, k2, k3, k4;
+		vtkm::Vec<FieldType, Size> k1(0,0), k2(0,0), k3(0,0), k4(0,0);
 
-    if (f.Evaluate(pos, field, k1) && f.Evaluate(pos + h_2 * k1, field, k2) &&
-        f.Evaluate(pos + h_2 * k2, field, k3) && f.Evaluate(pos + h * k3, field, k4))
-    {
-      out = pos + h / 6.0f * (k1 + 2 * k2 + 2 * k3 + k4);
-      return true;
-    }
-    return false;
+
+		if (!f.Evaluate(pos, field, k1)) {
+			return false;
+			out = pos;
+		}
+		vtkm::Normalize(k1);
+
+		k1 = k1 * h * 0.5;
+		k1 = k1 + pos;
+		
+		if (!f.Evaluate(k1, field, k2)) {
+			out = pos;
+			return false;
+		}
+		vtkm::Normalize(k2);
+		k1 = k1 - pos;
+
+		//v = (getVector(k1));
+		//if (v.length() > 1e-6)
+		//	v.normalize();
+		//k1.sub(pt);
+
+		//k2 = new Particle(v);
+		//k2.mult(h*0.5);
+		//k2.add(pt);
+		//v = (getVector(k2));
+		//if (v.length() > 1e-6)
+		//	v.normalize();
+		////v.Print();
+		//k2.sub(pt);
+
+		k2 = k2 * h * 0.5;
+		k2 = k2 + pos;
+		if (!f.Evaluate(k2, field, k3)) {
+			out = pos;
+			return false;
+		}
+		
+		vtkm::Normalize(k3);
+		k2 = k2 - pos;
+
+		//k3 = new Particle(v);
+		//k3.mult(h);
+		//k3.add(pt);
+		//v = (getVector(k3));
+		//if (v.length() > 1e-6)
+		//	v.normalize();
+		//k3.sub(pt);
+		k3 = k3 * h;
+		k3 = k3 + pos;
+		if (!f.Evaluate(k3, field, k4)) {
+			out = pos;
+			return false;
+		}
+
+		vtkm::Normalize(k4);
+		k3 = k3 - pos;
+		////v.Print();
+
+		//k4 = new Particle(v);
+		//k4.mult(h);
+		k4 = k4 * h;
+
+		//k1.mult(1.0 / 6.0);
+		//k2.mult(2.0 / 3.0);
+		//k3.mult(1.0 / 3.0);
+		//k4.mult(4.0 / 6.0);
+		k1 = k1 / 6.0;
+		k2 = 2.0 * k2 / 3.0;
+		k3 = k3 / 3.0;
+		k4 = 4.0 * k4 / 6.0;
+
+		out = pos + k1 + k2 + k3 + k4;
+
+		return true;
+		//pt.add(k1);
+		//pt.add(k2);
+		//pt.add(k3);
+		//pt.add(k4);
+		
+  //  if (f.Evaluate(pos, field, k1) && f.Evaluate(pos + h_2 * k1, field, k2) &&
+  //      f.Evaluate(pos + h_2 * k2, field, k3) && f.Evaluate(pos + h * k3, field, k4))
+  //  {
+  //    out = pos + h / 6.0f * (k1 + 2 * k2 + 2 * k3 + k4);
+  //    return true;
+  //  }
+  //  return false;
   }
 
   FieldEvaluateType f;
@@ -88,7 +168,7 @@ public:
 //    eval.incrT(h);
     if (eval.Evaluate(pos, field, vCur))
     {
-      out = pos + 0.1 * vCur;
+      out = pos + vCur;
       return true;
     }
     return false;

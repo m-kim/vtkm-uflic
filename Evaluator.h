@@ -24,7 +24,7 @@ public:
   }
 
   VTKM_CONT
-  DoubleGyreField(const Bounds& bb)
+  DoubleGyreField(const vtkm::Float32 t, const Bounds& bb)
     : bounds( bb ),
       omega(2 * vtkm::Pi() / 10.0),
       A(0.1),
@@ -42,13 +42,16 @@ public:
   VTKM_EXEC_CONT
   bool Evaluate(const vtkm::Vec<FieldType, 2>& pos,
                 const PortalType& vtkmNotUsed(vecData),
-                vtkm::Vec<FieldType, 2>& out) const
+                vtkm::Vec<FieldType, 2>& outVel) const
   {
-    if (!bounds.Contains(pos))
-      return false;
-    out[0] = pos[0] + calcU(pos[0] / dim[0], pos[1] / dim[1], t);
-    out[1] = pos[1] + calcV(pos[0] / dim[0], pos[1] / dim[1], t);
-
+    //if (!bounds.Contains(pos))
+    //  return false;
+		outVel[0] = calcU(pos[0] / dim[0], pos[1] / dim[1], t);
+		outVel[1] = calcV(pos[0] / dim[0], pos[1] / dim[1], t);
+		//vtkm::Float32 norm = outVel[0] * outVel[0] + outVel[1] * outVel[1];
+		//norm = sqrt(norm);
+		//outVel[0] /= norm;
+		//outVel[1] /= norm;
     return true;
   }
 
