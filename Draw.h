@@ -35,6 +35,7 @@ public:
   typedef void ExecutionSignature(_1, _2, _3, _4, _5);
 
   template<typename AtomicArrayType>
+  VTKM_EXEC
   void operator()(const AtomicArrayType &canvas,
                   const AtomicArrayType &omega,
                   const VecType& p1,

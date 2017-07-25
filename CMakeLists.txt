@@ -59,8 +59,7 @@ if(VTKm_CUDA_FOUND)
   # Cuda compiles do not respect target_include_directories
   cuda_include_directories(${VTKm_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
-  set (cudaSource  "${CMAKE_CURRENT_BINARY_DIR}/MapperRayTracer.cu" "${CMAKE_CURRENT_BINARY_DIR}/main.cu")
-  configure_file(MapperRayTracer.cxx "${CMAKE_CURRENT_BINARY_DIR}/MapperRayTracer.cu" COPYONLY)
+  set (cudaSource  "${CMAKE_CURRENT_BINARY_DIR}/main.cu")
   configure_file(main.cpp "${CMAKE_CURRENT_BINARY_DIR}/main.cu" COPYONLY)
   cuda_add_executable(UFLIC_rendering_CUDA ${cudaSource})
   target_include_directories(UFLIC_rendering_CUDA PRIVATE ${VTKm_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})

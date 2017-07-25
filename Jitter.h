@@ -38,8 +38,9 @@ public:
 		return vtkm::Max(vtkm::Min(y, dim[1] - 1), static_cast<vtkm::Id>(0)) * dim[0]
 			+ vtkm::Max(vtkm::Min(x, dim[0] - 1), static_cast<vtkm::Id>(0));
 	}
-	VTKM_EXEC
-		template<typename WholeArrayInType, typename FieldOutType>
+
+  template<typename WholeArrayInType, typename FieldOutType>
+  VTKM_EXEC
 	void operator()(const vtkm::Id &idx,
 		const WholeArrayInType &data,
 		const WholeArrayInType &tex,
