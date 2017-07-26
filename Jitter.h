@@ -51,7 +51,7 @@ public:
 		y = idx / dim[0];
 		x = idx % dim[0];
 		reval = data[idx];
-		if (y > 0 && y < dim[1] - 1 && x > 0 && x < dim[0] - 1) {
+		if (y >= 0 && y < dim[1] && x >= 0 && x < dim[0]) {
 			FieldOutType rnd = tex[idx];
 			if (rnd > BitSize / 2)
 				rnd -= BitSize / 2;
