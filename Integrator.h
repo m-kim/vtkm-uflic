@@ -50,7 +50,7 @@ public:
   {
 		vtkm::Vec<FieldType, Size> k1(0,0), k2(0,0), k3(0,0), k4(0,0);
 
-
+#if 0
 		if (!f.Evaluate(pos, field, k1)) {
 			return false;
 			out = pos;
@@ -129,14 +129,15 @@ public:
 		//pt.add(k2);
 		//pt.add(k3);
 		//pt.add(k4);
-		
-  //  if (f.Evaluate(pos, field, k1) && f.Evaluate(pos + h_2 * k1, field, k2) &&
-  //      f.Evaluate(pos + h_2 * k2, field, k3) && f.Evaluate(pos + h * k3, field, k4))
-  //  {
-  //    out = pos + h / 6.0f * (k1 + 2 * k2 + 2 * k3 + k4);
-  //    return true;
-  //  }
-  //  return false;
+#else		
+    if (f.Evaluate(pos, field, k1) && f.Evaluate(pos + h_2 * k1, field, k2) &&
+        f.Evaluate(pos + h_2 * k2, field, k3) && f.Evaluate(pos + h * k3, field, k4))
+    {
+      out = pos + h / 6.0f * (k1 + 2 * k2 + 2 * k3 + k4);
+      return true;
+    }
+    return false;
+#endif
   }
 
   FieldEvaluateType f;

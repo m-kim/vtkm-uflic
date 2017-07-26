@@ -26,6 +26,52 @@
 
 typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
 
+template<typename VecType, vtkm::IdComponent Size>
+void readPS(std::string fn, std::vector<vtkm::Vec<VecType, Size>> &in)
+{
+	//vtkm::cont::DataSet ds;
+	//vtkm::io::reader::VTKDataSetReader rdr(fn.c_str());
+	//try
+	//{
+	//	ds = rdr.ReadDataSet();
+	//}
+	//catch (vtkm::io::ErrorIO &e) {
+	//	std::string message("Error reading: ");
+	//	message += fn.c_str();
+	//	message += ", ";
+	//	message += e.GetMessage();
+	//}
+	//return ds;
+
+	
+	std::string line;
+	std::ifstream file(fn.c_str());
+
+	while (std::getline(file, line)) {
+		std::stringstream ss;
+		ss << line;
+		std::string tok;
+		vtkm::Vec<VecType, Size> vec;
+		//while (std::getline(ss, tok, ' ')) {
+		std::getline(ss, tok, ' ');
+		vec[0] = atof(tok.c_str());
+		std::getline(ss, tok, ' ');
+		vec[1] = atof(tok.c_str());
+		//}
+	}
+	//	String text = null;
+
+	//		String[] subtext = splitTokens(text, " ");
+
+	//		vecs[cnt].x = float(subtext[0]);
+	//		vecs[cnt].y = float(subtext[1]);
+	//		cnt += 1;
+	//	}
+	//}
+	//catch (IOException e) {
+	//	e.printStackTrace();
+	//}
+}
 template<typename VecComponentType>
 void saveAs(std::string fileName, 
 	vtkm::cont::ArrayHandle<VecComponentType > canvasArray, 
@@ -70,7 +116,8 @@ int main(int argc, char **argv)
 
   const vtkm::Id2 dim(256,256);
 	const vtkm::IdComponent ttl = 4;
-  std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
+	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
+	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
 	for (int i = 0; i < ttl; i++) {
 		for (int y = 0; y<dim[0]; y++) {
@@ -86,9 +133,15 @@ int main(int argc, char **argv)
 		sr[i] = vtkm::cont::make_ArrayHandle(pr[i]);
 	}
 
-
+	std::vector<vtkm::Vec<VecType, Size>> vecs;
 	vtkm::cont::DataSetBuilderUniform dataSetBuilder;
 	vtkm::cont::DataSet ds = dataSetBuilder.Create(dim);
+	
+	std::stringstream str;
+	str << "ps.vec.256.256.3";
+	readPS<VecType, Size>(str.str(), vecs);
+	vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
+
 
 	std::vector<FieldType> canvas[ttl], propertyField[2], omega(dim[0] * dim[1], 0), tex(dim[0] * dim[1], 0);
 	vtkm::Float32 t = 0;
@@ -113,9 +166,8 @@ int main(int argc, char **argv)
 	propFieldArray[1] = vtkm::cont::make_ArrayHandle(&propertyField[1][0], propertyField[1].size());
 	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
 	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
-  vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecArray;
 	EvalType eval(t, Bounds(0, dim[0], 0, dim[1]));
-	IntegratorType integrator(eval, 3.0);
+	IntegratorType integrator(eval, 24.0);
 	ParticleAdvectionWorkletType advect(integrator);
 	DrawLineWorkletType drawline(ds);
 	DoNormalize<FieldType, DeviceAdapter> donorm(dim);
@@ -141,10 +193,8 @@ int main(int argc, char **argv)
 			omegaArray.GetPortalControl().Set(i, 0);
 		}
 		for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
-			advect.Run(sl[i], sr[i], VecArray);
+			advect.Run(sl[i], sr[i], vecArray);
 			drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
-			//t += dt / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
-
 		}
 
 		sr.swap(sl);
@@ -158,6 +208,7 @@ int main(int argc, char **argv)
 		dosharp.Run(propFieldArray[1], omegaArray);
 		dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
+		t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
 
 	}
 
