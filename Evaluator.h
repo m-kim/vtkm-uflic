@@ -9,7 +9,50 @@
 #include <vtkm/cont/DynamicArrayHandle.h>
 #include "Bounds2.h"
 
+template <typename FieldType>
+class VectorField
+{
+public:
+  VTKM_CONT
+  VectorField()
+  {
+  }
 
+  VTKM_CONT
+  VectorField(const vtkm::Float32 t, const Bounds& bb)
+    : bounds( bb ),
+      t(0.0)
+  {
+    dim[0] = bounds.X.Max - bounds.X.Min;
+    dim[1] = bounds.Y.Max - bounds.Y.Min;
+  }
+
+  VTKM_EXEC
+  void incrT(FieldType dt){
+    t += dt;
+  }
+  template<typename VelFieldType>
+  VTKM_EXEC
+  bool Evaluate(const vtkm::Vec<FieldType, 2>& pos,
+                const VelFieldType& vecData,
+                vtkm::Vec<FieldType, 2>& outVel) const
+  {
+    if (!bounds.Contains(pos))
+      return false;
+
+    outVel = vecData.Get(vtkm::Floor(pos[1]) * dim[0] + vtkm::Floor(pos[0]));
+    return true;
+  }
+
+
+private:
+
+  vtkm::Id2 dim;
+  Bounds bounds;
+  FieldType omega, A, epsilon;
+  FieldType t;
+
+};
 template <typename PortalType, typename FieldType>
 class DoubleGyreField
 {

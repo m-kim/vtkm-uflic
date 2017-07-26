@@ -36,22 +36,22 @@ public:
   }
 
   VTKM_EXEC_CONT
-  RK4Integrator(const FieldEvaluateType& field, FieldType _h)
-    : f(field)
+  RK4Integrator(const FieldEvaluateType& _eval, FieldType _h)
+    : eval(_eval)
     , h(_h)
     , h_2(_h / 2.f)
   {
   }
 
-  template <typename PortalType>
+  template <typename VelFieldType>
   VTKM_EXEC bool Step(const vtkm::Vec<FieldType, Size>& pos,
-                      const PortalType& field,
+                      const VelFieldType& pf,
                       vtkm::Vec<FieldType, Size>& out) const
   {
 		vtkm::Vec<FieldType, Size> k1(0,0), k2(0,0), k3(0,0), k4(0,0);
 
-#if 0
-		if (!f.Evaluate(pos, field, k1)) {
+#if 1
+    if (!eval.Evaluate(pos, pf, k1)) {
 			return false;
 			out = pos;
 		}
@@ -60,7 +60,7 @@ public:
 		k1 = k1 * h * 0.5;
 		k1 = k1 + pos;
 		
-		if (!f.Evaluate(k1, field, k2)) {
+    if (!eval.Evaluate(k1, pf, k2)) {
 			out = pos;
 			return false;
 		}
@@ -83,7 +83,7 @@ public:
 
 		k2 = k2 * h * 0.5;
 		k2 = k2 + pos;
-		if (!f.Evaluate(k2, field, k3)) {
+    if (!eval.Evaluate(k2, pf, k3)) {
 			out = pos;
 			return false;
 		}
@@ -100,7 +100,7 @@ public:
 		//k3.sub(pt);
 		k3 = k3 * h;
 		k3 = k3 + pos;
-		if (!f.Evaluate(k3, field, k4)) {
+    if (!eval.Evaluate(k3, pf, k4)) {
 			out = pos;
 			return false;
 		}
@@ -130,8 +130,8 @@ public:
 		//pt.add(k3);
 		//pt.add(k4);
 #else		
-    if (f.Evaluate(pos, field, k1) && f.Evaluate(pos + h_2 * k1, field, k2) &&
-        f.Evaluate(pos + h_2 * k2, field, k3) && f.Evaluate(pos + h * k3, field, k4))
+    if (eval.Evaluate(pos, pf, k1) && eval.Evaluate(pos + h_2 * k1, pf, k2) &&
+        eval.Evaluate(pos + h_2 * k2, pf, k3) && eval.Evaluate(pos + h * k3, pf, k4))
     {
       out = pos + h / 6.0f * (k1 + 2 * k2 + 2 * k3 + k4);
       return true;
@@ -140,7 +140,7 @@ public:
 #endif
   }
 
-  FieldEvaluateType f;
+  FieldEvaluateType eval;
   FieldType h, h_2;
 };
 

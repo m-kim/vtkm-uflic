@@ -57,6 +57,8 @@ void readPS(std::string fn, std::vector<vtkm::Vec<VecType, Size>> &in)
 		vec[0] = atof(tok.c_str());
 		std::getline(ss, tok, ' ');
 		vec[1] = atof(tok.c_str());
+
+    in.push_back(vec);
 		//}
 	}
 	//	String text = null;
@@ -105,9 +107,9 @@ int main(int argc, char **argv)
 	typedef vtkm::Int32 FieldType;
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
-  typedef VecHandle::template ExecutionTypes<DeviceAdapter>::PortalConst VecPortalConstType;
 
-  typedef DoubleGyreField<VecPortalConstType, VecType> EvalType;
+  //typedef DoubleGyreField<VecPortalConstType, VecType> EvalType;
+  typedef VectorField<VecType> EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
 
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
@@ -146,8 +148,7 @@ int main(int argc, char **argv)
 	std::vector<FieldType> canvas[ttl], propertyField[2], omega(dim[0] * dim[1], 0), tex(dim[0] * dim[1], 0);
 	vtkm::Float32 t = 0;
 	const vtkm::Float32 dt = 0.1;
-	
-	for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 2; i++) {
 		propertyField[i].resize(dim[0] * dim[1], 0);
 	}
 
@@ -208,7 +209,7 @@ int main(int argc, char **argv)
 		dosharp.Run(propFieldArray[1], omegaArray);
 		dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
-		t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
+    //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
 
 	}
 

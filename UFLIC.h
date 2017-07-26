@@ -38,28 +38,24 @@ class ParticleAdvectWorklet : public vtkm::worklet::WorkletMapField
 {
 public:
   typedef vtkm::Vec<vtkm::Float32, Size> VecType;
-  typedef vtkm::cont::ArrayHandle<VecType> FieldHandle;
-  typedef typename FieldHandle::template ExecutionTypes<DeviceAdapterTag>::PortalConst
-    FieldPortalConstType;
 
-  typedef void ControlSignature(FieldIn<VecType>, FieldOut<VecType>);
-  typedef void ExecutionSignature(_1, _2);
+  typedef void ControlSignature(FieldIn<VecType>, FieldOut<VecType>, WholeArrayInOut<>);
+  typedef void ExecutionSignature(_1, _2, _3);
   typedef _1 InputDomain;
 
-  VTKM_EXEC void operator()(const VecType& p1, VecType& p2) const
+  template<typename VelFieldType>
+  VTKM_EXEC void operator()(const VecType& p1, VecType& p2, const VelFieldType &field) const
   {
 
     integrator.Step(p1, field, p2);
   }
 
-  ParticleAdvectWorklet(const IntegratorType& it, const FieldPortalConstType& f)
+  ParticleAdvectWorklet(const IntegratorType& it)
     : integrator(it)
-    , field(f)
   {
   }
 
   IntegratorType integrator;
-  FieldPortalConstType field;
 };
 
 
@@ -67,9 +63,7 @@ template <typename IntegratorType, typename FieldType, vtkm::IdComponent Size, t
 class ParticleAdvectionWorklet
 {
 public:
-  typedef vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>> FieldHandle;
-  typedef typename FieldHandle::template ExecutionTypes<DeviceAdapterTag>::PortalConst
-    FieldPortalConstType;
+
   typedef ParticleAdvectWorklet<IntegratorType,
                                 FieldType,
                                 Size,
@@ -90,7 +84,7 @@ public:
   {
     pl = _pl;
     pr = _pr;
-    field = fieldArray.PrepareForInput(DeviceAdapterTag());
+    field = fieldArray;
     return run();
   }
 
@@ -103,9 +97,9 @@ private:
       ParticleWorkletDispatchType;
 
 
-    ParticleAdvectWorkletType particleWorklet(integrator, field);
+    ParticleAdvectWorkletType particleWorklet(integrator);
     ParticleWorkletDispatchType particleWorkletDispatch(particleWorklet);
-    particleWorkletDispatch.Invoke(pl, pr);
+    particleWorkletDispatch.Invoke(pl, pr, field);
 
 
     return pr;
@@ -116,7 +110,8 @@ private:
   vtkm::cont::DataSet ds;
   vtkm::Id maxSteps;
   vtkm::Id ParticlesPerRound;
-  FieldPortalConstType field;
+  vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>> field;
+
 };
 
 
