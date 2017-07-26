@@ -41,29 +41,32 @@ public:
                   const VecType& p1,
                   const VecType& p2,
                   FieldType val) const {
-    vtkm::Vec<VecComponentType,Size> p = p1;
-    const vtkm::Vec<VecComponentType,Size> d = p2 - p;
+		if (bounds.Contains(p1) && bounds.Contains(p2)) {
+			vtkm::Vec<VecComponentType, Size> p = p1;
+			const vtkm::Vec<VecComponentType, Size> d = p2 - p;
 
-    float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
-    if (N < 1e-6){
-      N = 1;
-    }
-
-    const vtkm::Vec<VecComponentType,Size> s(d[0]/N, d[1]/N);
-
-    for (int i=0; i<N; i++){
-      if (bounds.Contains(vtkm::Round(p))){
-        vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
-#if 1
-				canvas.Add(idx, val);//color(255,255,255);
-				omega.Add(idx, 1);
-#else
-				canvas.Set(idx, val);//color(255,255,255);
-				omega.Set(idx, 1);
-#endif
+			float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
+			if (N < 1e-6) {
+				N = 1;
 			}
-      p += s;
-    }
+
+			const vtkm::Vec<VecComponentType, Size> s(d[0] / N, d[1] / N);
+
+			for (int i = 0; i<N; i++) {
+				if (bounds.Contains(vtkm::Round(p))) {
+					vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
+#if 1
+					canvas.Add(idx, val);//color(255,255,255);
+					omega.Add(idx, 1);
+#else
+					canvas.Set(idx, val);//color(255,255,255);
+					omega.Set(idx, 1);
+#endif
+				}
+				p += s;
+				}
+
+		}
 	}
 private:
   Bounds bounds;
