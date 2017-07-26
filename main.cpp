@@ -108,8 +108,8 @@ int main(int argc, char **argv)
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
 
-  //typedef DoubleGyreField<VecPortalConstType, VecType> EvalType;
-  typedef VectorField<VecType> EvalType;
+  typedef DoubleGyreField<VecType> EvalType;
+  //typedef VectorField<VecType> EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
 
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
 
   const vtkm::Id2 dim(256,256);
-	const vtkm::IdComponent ttl = 4;
+	const vtkm::IdComponent ttl = 8;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
@@ -168,14 +168,14 @@ int main(int argc, char **argv)
 	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
 	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
 	EvalType eval(t, Bounds(0, dim[0], 0, dim[1]));
-	IntegratorType integrator(eval, 24.0);
+	IntegratorType integrator(eval, 2.0);
 	ParticleAdvectionWorkletType advect(integrator);
 	DrawLineWorkletType drawline(ds);
 	DoNormalize<FieldType, DeviceAdapter> donorm(dim);
 	DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
 	DoJitter<FieldType, DeviceAdapter> dojitter(dim);
 
-	for (int loop = 0; loop < 5; loop++) {
+	for (int loop = 0; loop < 16; loop++) {
 		std::cout << "t: " << t << std::endl;
 		for (int i = 0; i < sr[loop % ttl].GetNumberOfValues(); i++) {
 			vtkm::Id x, y;

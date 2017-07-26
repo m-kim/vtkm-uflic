@@ -53,7 +53,7 @@ private:
   FieldType t;
 
 };
-template <typename PortalType, typename FieldType>
+template <typename FieldType>
 class DoubleGyreField
 {
 public:
@@ -82,9 +82,11 @@ public:
   void incrT(FieldType dt){
     t += dt;
   }
+
+	template<typename VelFieldType>
   VTKM_EXEC_CONT
   bool Evaluate(const vtkm::Vec<FieldType, 2>& pos,
-                const PortalType& vtkmNotUsed(vecData),
+                const VelFieldType& vtkmNotUsed(vecData),
                 vtkm::Vec<FieldType, 2>& outVel) const
   {
     //if (!bounds.Contains(pos))
