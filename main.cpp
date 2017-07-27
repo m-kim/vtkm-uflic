@@ -117,6 +117,8 @@ int main(int argc, char **argv)
 
 
   const vtkm::Id2 dim(512,256);
+  const vtkm::Vec<VecType, Size> spacing(2,1);
+
   const vtkm::IdComponent ttl = 64, loop_cnt = 64;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
@@ -137,7 +139,7 @@ int main(int argc, char **argv)
 
 	std::vector<vtkm::Vec<VecType, Size>> vecs;
 	vtkm::cont::DataSetBuilderUniform dataSetBuilder;
-	vtkm::cont::DataSet ds = dataSetBuilder.Create(dim);
+  vtkm::cont::DataSet ds = dataSetBuilder.Create(dim);
 	
 	std::stringstream str;
 	str << "ps.vec.256.256.3";
@@ -168,7 +170,6 @@ int main(int argc, char **argv)
 	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
 	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
 
-  vtkm::Vec<VecType, Size> spacing(2,1);
   EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
   IntegratorType integrator(eval, 3.0);
 	ParticleAdvectionWorkletType advect(integrator);
@@ -207,12 +208,9 @@ int main(int argc, char **argv)
 		fn << "uflic-" << loop << ".pnm";
 		saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
 
-		//REUSE omegaArray as a temporary cache to sharpen
-    if (loop % 4){
-      dosharp.Run(propFieldArray[1], omegaArray);
-      dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
-
-    }
+    //REUSE omegaArray as a temporary cache to sharpen
+    dosharp.Run(propFieldArray[1], omegaArray);
+    dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
     //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
 
