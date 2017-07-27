@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
 
-  typedef DoubleGyreField<VecType> EvalType;
+  typedef DoubleGyreField<VecType, Size> EvalType;
   //typedef VectorField<VecType> EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
 
@@ -116,8 +116,8 @@ int main(int argc, char **argv)
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
 
-  const vtkm::Id2 dim(256,256);
-	const vtkm::IdComponent ttl = 8;
+  const vtkm::Id2 dim(512,256);
+  const vtkm::IdComponent ttl = 64, loop_cnt = 64;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
@@ -167,15 +167,17 @@ int main(int argc, char **argv)
 	propFieldArray[1] = vtkm::cont::make_ArrayHandle(&propertyField[1][0], propertyField[1].size());
 	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
 	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
-	EvalType eval(t, Bounds(0, dim[0], 0, dim[1]));
-	IntegratorType integrator(eval, 2.0);
+
+  vtkm::Vec<VecType, Size> spacing(2,1);
+  EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
+  IntegratorType integrator(eval, 3.0);
 	ParticleAdvectionWorkletType advect(integrator);
 	DrawLineWorkletType drawline(ds);
 	DoNormalize<FieldType, DeviceAdapter> donorm(dim);
 	DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
 	DoJitter<FieldType, DeviceAdapter> dojitter(dim);
 
-	for (int loop = 0; loop < 16; loop++) {
+  for (int loop = 0; loop < loop_cnt; loop++) {
 		std::cout << "t: " << t << std::endl;
 		for (int i = 0; i < sr[loop % ttl].GetNumberOfValues(); i++) {
 			vtkm::Id x, y;
@@ -206,8 +208,11 @@ int main(int argc, char **argv)
 		saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
 
 		//REUSE omegaArray as a temporary cache to sharpen
-		dosharp.Run(propFieldArray[1], omegaArray);
-		dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
+    if (loop % 4){
+      dosharp.Run(propFieldArray[1], omegaArray);
+      dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
+
+    }
 
     //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
 
