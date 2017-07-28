@@ -18,6 +18,7 @@
 #include "Sharpen.h"
 #include "Normalize.h"
 #include "Jitter.h"
+#include "Convolve.h"
 
 
 #include <iostream>
@@ -118,6 +119,8 @@ int main(int argc, char **argv)
 
   const vtkm::Id2 dim(512,256);
   const vtkm::Vec<VecType, Size> spacing(2,1);
+//    const vtkm::Id2 dim(256,256);
+//    const vtkm::Vec<VecType, Size> spacing(1,1);
 
   const vtkm::IdComponent ttl = 64, loop_cnt = 64;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
