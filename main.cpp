@@ -109,20 +109,20 @@ int main(int argc, char **argv)
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
 
-  typedef DoubleGyreField<VecType, Size> EvalType;
-  //typedef VectorField<VecType> EvalType;
+  //typedef DoubleGyreField<VecType, Size> EvalType;
+  typedef VectorField<VecType> EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
 
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
 
-  const vtkm::Id2 dim(512,256);
+  const vtkm::Id2 dim(96,256);
   const vtkm::Vec<VecType, Size> spacing(2,1);
 //    const vtkm::Id2 dim(256,256);
 //    const vtkm::Vec<VecType, Size> spacing(1,1);
 
-  const vtkm::IdComponent ttl = 64, loop_cnt = 64;
+  const vtkm::IdComponent ttl = 46, loop_cnt = 46*3;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
@@ -145,7 +145,8 @@ int main(int argc, char **argv)
   vtkm::cont::DataSet ds = dataSetBuilder.Create(dim);
 	
 	std::stringstream str;
-	str << "ps.vec.256.256.3";
+  //str << "ps.vec.256.256.3";
+  str << "XGC_2.vel";
 	readPS<VecType, Size>(str.str(), vecs);
 	vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
@@ -216,6 +217,11 @@ int main(int argc, char **argv)
     dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
     //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
+    str.str("");
+    str << "XGC_" << loop+3 << ".vel";
+    vecs.resize(0);
+    readPS<VecType, Size>(str.str(), vecs);
+    vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	}
 
