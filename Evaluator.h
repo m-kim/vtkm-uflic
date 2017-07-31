@@ -40,7 +40,8 @@ public:
                 const VelFieldType& vecData,
                 vtkm::Vec<FieldType, Size>& outVel) const
   {
-    if (!bounds.Contains(pos))
+    //if (!bounds.Contains(pos)) Contains is inclusive
+    if (pos[0] < 0 || pos[0] >= dim[0] || pos[1] < 0 || pos[1] >= dim[1] || pos[0] != pos[0] || pos[1] != pos[1])
       return false;
 
     outVel = vecData.Get(vtkm::Floor(pos[1]) * dim[0] + vtkm::Floor(pos[0]));
