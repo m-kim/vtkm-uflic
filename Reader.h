@@ -101,23 +101,36 @@ public:
   void read(std::vector<vtkm::Vec<VecType, Size>> &in)
   {
     std::cout << this->filename.str() << std::endl;
-    vtkm::cont::DataSet ds = readVTK(this->filename.str());
+    ds = readVTK(this->filename.str());
   //  vtkm::Bounds vounds = ds.GetCoordinateSystem(0).GetBounds();
   //  Bounds bounds(vounds.X, vounds.Y);
 
-//    vtkm::cont::CellSetStructured<3> cells;
-//    ds.GetCellSet(0).CopyTo(cells);
-//    vtkm::Id3 dim3 = cells.GetSchedulingRange(vtkm::TopologyElementTagPoint());
-//    this->dim = vtkm::Id2(dim3[0], dim3[2]);
-//    vtkm::cont::Field fld = ds.GetField(0);
-//    vtkm::cont::DynamicArrayHandle dah = fld.GetData();
-//    vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>> ah = dah.Cast<vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>>>();
-//    for (int y=0; y<this->dim[1]; y++){
-//      for (int x=0; x<this->dim[0]; x++){
-//        vtkm::Vec<vtkm::Float64,3> vec  = ah.GetPortalConstControl().Get(y*this->dim[0]+x);
-//        in.push_back(vtkm::Vec<vtkm::Float32, 2>(vec[0],vec[2]));
-//      }
-//    }
+    vtkm::cont::CellSetStructured<3> cells;
+    ds.GetCellSet(0).CopyTo(cells);
+    dim3 = cells.GetSchedulingRange(vtkm::TopologyElementTagPoint());
+    this->dim = vtkm::Id2(dim3[0], dim3[2]);
+    vtkm::cont::Field fld = ds.GetField(0);
+    dah = fld.GetData();
+    ah = dah.Cast<vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>>>();
+    std::cout << ah.GetNumberOfValues() << std::endl;
+    loop = 0;
+    next(in);
+  }
+
+  void next(std::vector<vtkm::Vec<VecType, Size>> &in)
+  {
+    in.resize(0);
+
+    for (int y=0; y<this->dim[1]; y++){
+      for (int x=0; x<this->dim[0]; x++){
+        vtkm::Id idx = loop*this->dim[0]*this->dim[1] + y*this->dim[0]+x;
+        vtkm::Vec<vtkm::Float64,3> vec  = ah.GetPortalConstControl().Get(idx);
+        in.push_back(vtkm::Vec<vtkm::Float32, 2>(vec[0],vec[2]));
+      }
+    }
+
+    loop++;
+
   }
 
   vtkm::cont::DataSet readVTK(std::string fn)
@@ -133,11 +146,19 @@ public:
       message += fn.c_str();
       message += ", ";
       message += e.GetMessage();
+      std::cerr << message << std::endl;
     }
     return ds;
 
   }
 
+
+  vtkm::cont::DataSet ds;
+  vtkm::cont::DynamicArrayHandle dah;
+  vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>> ah;
+
+  vtkm::Id3 dim3;
+  vtkm::Id loop;
 };
 
 template <typename VecType, vtkm::Id Size>
