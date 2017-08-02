@@ -34,11 +34,13 @@ set(UFLIC_SRC
 )
 set(UFLIC_HDR
   Bounds2.h
+  Convolve.h
   Draw.h
   Evaluator.h
   Integrator.h
   Jitter.h
   Normalize.h
+  Reader.h
   Sharpen.h
   UFLIC.h
 )

@@ -20,6 +20,7 @@
 #include "Jitter.h"
 #include "Convolve.h"
 
+#include "Reader.h"
 
 #include <iostream>
 #include <fstream>
@@ -27,54 +28,8 @@
 
 typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
 
-template<typename VecType, vtkm::IdComponent Size>
-void readPS(std::string fn, std::vector<vtkm::Vec<VecType, Size>> &in)
-{
-	//vtkm::cont::DataSet ds;
-	//vtkm::io::reader::VTKDataSetReader rdr(fn.c_str());
-	//try
-	//{
-	//	ds = rdr.ReadDataSet();
-	//}
-	//catch (vtkm::io::ErrorIO &e) {
-	//	std::string message("Error reading: ");
-	//	message += fn.c_str();
-	//	message += ", ";
-	//	message += e.GetMessage();
-	//}
-	//return ds;
 
-	
-	std::string line;
-	std::ifstream file(fn.c_str());
 
-	while (std::getline(file, line)) {
-		std::stringstream ss;
-		ss << line;
-		std::string tok;
-		vtkm::Vec<VecType, Size> vec;
-		//while (std::getline(ss, tok, ' ')) {
-		std::getline(ss, tok, ' ');
-		vec[0] = atof(tok.c_str());
-		std::getline(ss, tok, ' ');
-		vec[1] = atof(tok.c_str());
-
-    in.push_back(vec);
-		//}
-	}
-	//	String text = null;
-
-	//		String[] subtext = splitTokens(text, " ");
-
-	//		vecs[cnt].x = float(subtext[0]);
-	//		vecs[cnt].y = float(subtext[1]);
-	//		cnt += 1;
-	//	}
-	//}
-	//catch (IOException e) {
-	//	e.printStackTrace();
-	//}
-}
 template<typename VecComponentType>
 void saveAs(std::string fileName, 
 	vtkm::cont::ArrayHandle<VecComponentType > canvasArray, 
@@ -101,7 +56,6 @@ void saveAs(std::string fileName,
 int main(int argc, char **argv)
 {
 
-
   const int Size = 2;
   typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
   typedef vtkm::Float32 VecType;
@@ -116,13 +70,17 @@ int main(int argc, char **argv)
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
+  std::vector<vtkm::Vec<VecType, Size>> vecs;
 
-  const vtkm::Id2 dim(96,256);
-  const vtkm::Vec<VecType, Size> spacing(2,1);
-//    const vtkm::Id2 dim(256,256);
-//    const vtkm::Vec<VecType, Size> spacing(1,1);
+  std::shared_ptr<Reader<VecType, Size>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderPS<VecType, Size>("ps.vec.256.256.3", vtkm::Id2(256,256), Bounds(0,256,0,256)));
+  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
+  reader->read(vecs);
+  vtkm::Id2 dim = reader->dim;
+  vtkm::Vec<VecType,Size> spacing = reader->spacing;
+  Bounds bounds = reader->bounds;
 
-  const vtkm::IdComponent ttl = 46, loop_cnt = 46*3;
+  const vtkm::IdComponent ttl = 4, loop_cnt = 46*3;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
@@ -140,14 +98,7 @@ int main(int argc, char **argv)
 		sr[i] = vtkm::cont::make_ArrayHandle(pr[i]);
 	}
 
-	std::vector<vtkm::Vec<VecType, Size>> vecs;
-	vtkm::cont::DataSetBuilderUniform dataSetBuilder;
-  vtkm::cont::DataSet ds = dataSetBuilder.Create(dim);
 	
-	std::stringstream str;
-  //str << "ps.vec.256.256.3";
-  str << "XGC_2.vel";
-	readPS<VecType, Size>(str.str(), vecs);
 	vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 
@@ -177,7 +128,7 @@ int main(int argc, char **argv)
   EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
   IntegratorType integrator(eval, 3.0);
 	ParticleAdvectionWorkletType advect(integrator);
-	DrawLineWorkletType drawline(ds);
+  DrawLineWorkletType drawline(bounds, dim);
 	DoNormalize<FieldType, DeviceAdapter> donorm(dim);
 	DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
 	DoJitter<FieldType, DeviceAdapter> dojitter(dim);
@@ -217,10 +168,7 @@ int main(int argc, char **argv)
     dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
     //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
-    str.str("");
-    str << "XGC_" << loop+3 << ".vel";
-    vecs.resize(0);
-    readPS<VecType, Size>(str.str(), vecs);
+    reader->next(vecs);
     vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	}

@@ -85,8 +85,10 @@ public:
                     DeviceAdapterTag>
     DrawLineWorkletType;
 
-  DrawLineWorklet(vtkm::cont::DataSet &_ds)
-    :ds(_ds)
+  DrawLineWorklet(Bounds bb,
+                  vtkm::Id2 d)
+    : bounds(bb),
+      dims(d)
   {
 
   }
@@ -123,13 +125,6 @@ private:
     typedef typename vtkm::worklet::DispatcherMapField<DrawLineWorkletType>
       DrawLineWorkletDispatchType;
 
-    vtkm::Bounds vounds = ds.GetCoordinateSystem(0).GetBounds();
-    Bounds bounds(vounds.X, vounds.Y);
-    vtkm::cont::CellSetStructured<2> cells;
-    ds.GetCellSet(0).CopyTo(cells);
-    vtkm::Id2 dims = cells.GetSchedulingRange(vtkm::TopologyElementTagPoint());
-
-
     DrawLineWorkletType drawLineWorklet(bounds, dims);
     DrawLineWorkletDispatchType drawLineWorkletDispatch(drawLineWorklet);
     drawLineWorkletDispatch.Invoke(canvas[1], omega, pl, pr, canvas[0]);
@@ -137,7 +132,9 @@ private:
 
 
   vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>> pl, pr;
-  vtkm::cont::DataSet ds;
+
+  Bounds bounds;
+  vtkm::Id2 dims;
   vtkm::Id maxSteps;
   vtkm::Id ParticlesPerRound;
   vtkm::cont::ArrayHandle<FieldType> canvas[2], omega;
