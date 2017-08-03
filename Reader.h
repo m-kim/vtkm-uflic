@@ -6,10 +6,13 @@
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/DataSetBuilderUniform.h>
 
-template <typename VecType, vtkm::Id Size>
+template <typename VecType, vtkm::Id Size, class Derived>
 class Reader
 {
 public:
+  typedef Derived DerivedType;
+  typedef VectorField<VecType> EvalType;
+
   Reader(std::string fn,
          vtkm::Id2 d,
          Bounds bb,
@@ -32,14 +35,14 @@ public:
   std::stringstream filename;
 };
 
-template <typename VecType, vtkm::Id Size>
-class ReaderPS : public Reader<VecType, Size>
+template <typename VecType, vtkm::Id Size, class Derived>
+class ReaderPS : public Reader<VecType, Size, ReaderPS<VecType, Size, Derived>>
 {
 public:
   ReaderPS(std::string fn,
            vtkm::Id2 d,
            Bounds bb)
-    : Reader<VecType, Size>(fn,
+    : Reader<VecType, Size, ReaderPS>(fn,
                             d,
                             bb,
                             vtkm::Vec<VecType, Size>(1,1)
@@ -86,11 +89,11 @@ public:
 };
 
 template <typename VecType, vtkm::Id Size>
-class ReaderVTK : public Reader<VecType, Size>
+class ReaderVTK : public Reader<VecType, Size, ReaderVTK<VecType, Size>>
 {
 public:
   ReaderVTK(std::string fn)
-    : Reader<VecType, Size>(fn,
+    : Reader<VecType, Size, ReaderVTK>(fn,
                             vtkm::Id2(512,512),
                             Bounds(0,512, 0, 512),
                             vtkm::Vec<VecType, Size>(1,1)
@@ -162,14 +165,18 @@ public:
 };
 
 template <typename VecType, vtkm::Id Size>
-class ReaderCalc : public Reader<VecType, Size>
+class ReaderCalc : public Reader<VecType, Size, ReaderCalc<VecType, Size>>
 {
 public:
-  ReaderCalc(std::string fn)
-    : Reader<VecType, Size>(fn,
-                            vtkm::Id2(512,512),
-                            Bounds(0,512, 0, 512),
-                            vtkm::Vec<VecType, Size>(2,1)
+  typedef DoubleGyreField<VecType, Size> EvalType;
+  ReaderCalc(std::string fn,
+             vtkm::Id2 d = vtkm::Id2(512,512),
+             Bounds bb = Bounds(0,512, 0, 512),
+             vtkm::Vec<VecType, Size> sp = vtkm::Vec<VecType, Size>(2,1))
+    : Reader<VecType, Size, ReaderCalc>(fn,
+                            d,
+                            bb,
+                            sp
                             )
   {
   }
@@ -180,13 +187,13 @@ public:
 
 
 template <typename VecType, vtkm::Id Size>
-class ReaderXGC : public ReaderPS<VecType, Size>
+class ReaderXGC : public ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>
 {
 public:
   ReaderXGC(std::string fn,
            vtkm::Id2 d,
            Bounds bb)
-    : ReaderPS<VecType, Size>(fn,
+    : ReaderPS<VecType, Size,ReaderXGC>(fn,
                             d,
                             bb
                             ),

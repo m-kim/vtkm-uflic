@@ -25,6 +25,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <type_traits>
 
 typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
 
@@ -63,18 +64,21 @@ int main(int argc, char **argv)
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
 
-  //typedef DoubleGyreField<VecType, Size> EvalType;
-  typedef VectorField<VecType> EvalType;
+
+  std::vector<vtkm::Vec<VecType, Size>> vecs;
+
+  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderPS<VecType, Size>("ps.vec.256.256.3", vtkm::Id2(256,256), Bounds(0,256,0,256)));
+  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
+
+  std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(512,256), Bounds(0,512,0,256)));
+
+  typedef std::remove_reference<decltype(*reader)>::type::DerivedType::EvalType EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
 
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
-  std::vector<vtkm::Vec<VecType, Size>> vecs;
-
-  std::shared_ptr<Reader<VecType, Size>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
-  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderPS<VecType, Size>("ps.vec.256.256.3", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
   reader->read(vecs);
   vtkm::Id2 dim = reader->dim;
   vtkm::Vec<VecType,Size> spacing = reader->spacing;
