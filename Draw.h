@@ -22,6 +22,11 @@ public:
 
   }
 
+  VTKM_EXEC
+  bool outside(const VecType &pos) const
+  {
+    return pos[0] < 0 || pos[0] >= dim[0] || pos[1] < 0 || pos[1] >= dim[1] || pos[0] != pos[0] || pos[1] != pos[1];
+  }
 #if 1
   typedef void ControlSignature(AtomicArrayInOut<FieldType>,
                                 AtomicArrayInOut<FieldType>,
@@ -41,7 +46,9 @@ public:
                   const VecType& p1,
                   const VecType& p2,
                   FieldType val) const {
-		if (bounds.Contains(p1) && bounds.Contains(p2)) {
+    //if (bounds.Contains(p1) && bounds.Contains(p2)) {
+    if (!outside(p1) && !outside(p2)){
+
 			vtkm::Vec<VecComponentType, Size> p = p1;
 			const vtkm::Vec<VecComponentType, Size> d = p2 - p;
 
@@ -53,7 +60,7 @@ public:
 			const vtkm::Vec<VecComponentType, Size> s(d[0] / N, d[1] / N);
 
 			for (int i = 0; i<N; i++) {
-				if (bounds.Contains(vtkm::Round(p))) {
+        if (!outside(vtkm::Round(p))) {
 					vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
 #if 1
 					canvas.Add(idx, val);//color(255,255,255);
