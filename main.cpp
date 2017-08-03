@@ -67,11 +67,11 @@ int main(int argc, char **argv)
 
   std::vector<vtkm::Vec<VecType, Size>> vecs;
 
-  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
   //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderPS<VecType, Size>("ps.vec.256.256.3", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-  //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
+  //std::shared_ptr<Reader<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
 
-  std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(512,256), Bounds(0,512,0,256)));
+  //std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(512,256), Bounds(0,512,0,256)));
 
   typedef std::remove_reference<decltype(*reader)>::type::DerivedType::EvalType EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
@@ -80,6 +80,9 @@ int main(int argc, char **argv)
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
   reader->read(vecs);
+
+  auto t0 = std::chrono::high_resolution_clock::now();
+
   vtkm::Id2 dim = reader->dim;
   vtkm::Vec<VecType,Size> spacing = reader->spacing;
   Bounds bounds = reader->bounds;
@@ -107,8 +110,8 @@ int main(int argc, char **argv)
 
 
 	std::vector<FieldType> canvas[ttl], propertyField[2], omega(dim[0] * dim[1], 0), tex(dim[0] * dim[1], 0);
-	vtkm::Float32 t = 0;
-	const vtkm::Float32 dt = 0.1;
+  vtkm::Float32 t = 0;
+  const vtkm::Float32 dt = 0.1;
 		for (int i = 0; i < 2; i++) {
 		propertyField[i].resize(dim[0] * dim[1], 0);
 	}
@@ -129,16 +132,16 @@ int main(int argc, char **argv)
 	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
 	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
 
-  EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
-  IntegratorType integrator(eval, 3.0);
-	ParticleAdvectionWorkletType advect(integrator);
   DrawLineWorkletType drawline(bounds, dim);
 	DoNormalize<FieldType, DeviceAdapter> donorm(dim);
 	DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
 	DoJitter<FieldType, DeviceAdapter> dojitter(dim);
 
   for (int loop = 0; loop < loop_cnt; loop++) {
-		std::cout << "t: " << t << std::endl;
+    EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
+    IntegratorType integrator(eval, 3.0);
+    ParticleAdvectionWorkletType advect(integrator);
+    std::cout << "t: " << t << std::endl;
 		for (int i = 0; i < sr[loop % ttl].GetNumberOfValues(); i++) {
 			vtkm::Id x, y;
 			y = i / dim[0];
@@ -171,11 +174,15 @@ int main(int argc, char **argv)
     dosharp.Run(propFieldArray[1], omegaArray);
     dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
-    //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
+    t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
     reader->next(vecs);
     vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	}
+
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  std::cout << "Finished: " << std::chrono::duration<double>(t1-t0).count() << "s" << std::endl;
 
 
 	//vtkm::rendering::Mapper mapper;

@@ -11,8 +11,8 @@ class Reader
 {
 public:
   typedef Derived DerivedType;
-  typedef VectorField<VecType> EvalType;
 
+  Reader(){}
   Reader(std::string fn,
          vtkm::Id2 d,
          Bounds bb,
@@ -92,6 +92,8 @@ template <typename VecType, vtkm::Id Size>
 class ReaderVTK : public Reader<VecType, Size, ReaderVTK<VecType, Size>>
 {
 public:
+  typedef VectorField<VecType> EvalType;
+
   ReaderVTK(std::string fn)
     : Reader<VecType, Size, ReaderVTK>(fn,
                             vtkm::Id2(512,512),
@@ -190,6 +192,8 @@ template <typename VecType, vtkm::Id Size>
 class ReaderXGC : public ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>
 {
 public:
+  typedef VectorField<VecType> EvalType;
+
   ReaderXGC(std::string fn,
            vtkm::Id2 d,
            Bounds bb)
