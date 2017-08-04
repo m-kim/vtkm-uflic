@@ -67,13 +67,21 @@ int main(int argc, char **argv)
 
   std::vector<vtkm::Vec<VecType, Size>> vecs;
 
-  std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  //std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  //typedef VectorField<VecType,Size> EvalType;
+
+
   //std::shared_ptr<Reader<VecType, Size>> reader(new ReaderPS<VecType, Size>("ps.vec.256.256.3", vtkm::Id2(256,256), Bounds(0,256,0,256)));
   //std::shared_ptr<Reader<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
+  int x = 512;
+  int y = 256;
+  if (argc > 1){
+    x = atoi(argv[1]);
+    y = atoi(argv[2]);
+  }
+  std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y)));
 
-  //std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(512,256), Bounds(0,512,0,256)));
-
-  typedef std::remove_reference<decltype(*reader)>::type::DerivedType::EvalType EvalType;
+  typedef DoubleGyreField<VecType,Size> EvalType;
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
 
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
@@ -87,7 +95,7 @@ int main(int argc, char **argv)
   vtkm::Vec<VecType,Size> spacing = reader->spacing;
   Bounds bounds = reader->bounds;
 
-  const vtkm::IdComponent ttl = 4, loop_cnt = 46*3;
+  const vtkm::IdComponent ttl = 4, loop_cnt = 12;
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
@@ -141,7 +149,7 @@ int main(int argc, char **argv)
     EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
     IntegratorType integrator(eval, 3.0);
     ParticleAdvectionWorkletType advect(integrator);
-    std::cout << "t: " << t << std::endl;
+    //std::cout << "t: " << t << std::endl;
 		for (int i = 0; i < sr[loop % ttl].GetNumberOfValues(); i++) {
 			vtkm::Id x, y;
 			y = i / dim[0];
@@ -166,9 +174,9 @@ int main(int argc, char **argv)
 		sr.swap(sl);
 
 		donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
-		std::stringstream fn;
-		fn << "uflic-" << loop << ".pnm";
-		saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+//		std::stringstream fn;
+//		fn << "uflic-" << loop << ".pnm";
+//		saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
 
     //REUSE omegaArray as a temporary cache to sharpen
     dosharp.Run(propFieldArray[1], omegaArray);
@@ -182,7 +190,7 @@ int main(int argc, char **argv)
 
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "Finished: " << std::chrono::duration<double>(t1-t0).count() << "s" << std::endl;
+  std::cout << "Finished dt: " << dt << " cnt: " << loop_cnt << " time: " << std::chrono::duration<double>(t1-t0).count() << "s" << std::endl;
 
 
 	//vtkm::rendering::Mapper mapper;
