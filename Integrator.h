@@ -52,8 +52,8 @@ public:
 
 #if 1
     if (!eval.Evaluate(pos, pf, k1)) {
-			return false;
-			out = pos;
+      out = pos;
+      return false;
 		}
 		vtkm::Normalize(k1);
 
