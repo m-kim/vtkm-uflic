@@ -118,19 +118,20 @@ public:
     dah = fld.GetData();
     ah = dah.Cast<vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>>>();
     std::cout << ah.GetNumberOfValues() << std::endl;
-    loop = 0;
+    loop = 20;
+    in.resize(this->dim[0] * this->dim[1]);
     next(in);
   }
 
   void next(std::vector<vtkm::Vec<VecType, Size>> &in)
   {
-    in.resize(0);
+
     for (int z=0; z<this->dim[1]; z++){
       for (int y=loop; y<loop+1; y++){
         for (int x=0; x<this->dim[0]; x++){
           vtkm::Id idx = z*this->dim[0]*128 + y*this->dim[0]+x;
           vtkm::Vec<vtkm::Float64,3> vec  = ah.GetPortalConstControl().Get(idx);
-          in.push_back(vtkm::Vec<vtkm::Float32, 2>(vec[0],vec[2]));
+          in[z*this->dim[0] + x] = vtkm::Vec<vtkm::Float32, 2>(vec[0],vec[2]);
         }
       }
     }
