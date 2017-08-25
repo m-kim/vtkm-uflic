@@ -197,31 +197,36 @@ public:
 
   ReaderXGC(std::string fn,
            vtkm::Id2 d,
-           Bounds bb)
+           Bounds bb,
+            vtkm::Id frame_cnt)
     : ReaderPS<VecType, Size,ReaderXGC>(fn,
                             d,
                             bb
                             ),
-      base_fn(fn)
+      base_fn(fn),
+      frameCnt(frame_cnt)
 
   {
     this->ds = this->dataSetBuilder.Create(this->dim);
-    loop = 3;
+    loop = 0;
     this->filename << base_fn << loop << ".vel";
     std::cout << this->filename.str() << std::endl;
-    loop++;
+
+    mem.resize(100 - loop);
+    for (int i=loop; i<vtkm::Min(frameCnt, 100-loop); i++){
+      this->filename.str("");
+      this->filename << base_fn << i << ".vel";
+      this->read(mem[i]);
+    }
   }
 
   void next(std::vector<vtkm::Vec<VecType, Size>> &in)
   {
-    in.resize(0);
-    this->filename.str("");
-    this->filename << base_fn << loop << ".vel";
-    this->read(in);
-    loop++;
+    in = mem[loop++];
   }
 
   std::string base_fn;
-  int loop;
+  std::vector<std::vector<vtkm::Vec<VecType, Size>>> mem;
+  vtkm::Id frameCnt, loop;
 };
 #endif
