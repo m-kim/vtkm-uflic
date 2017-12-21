@@ -39,7 +39,7 @@ class ParticleAdvectWorklet : public vtkm::worklet::WorkletMapField
 public:
   typedef vtkm::Vec<vtkm::Float32, Size> VecType;
 
-  typedef void ControlSignature(FieldIn<VecType>, FieldOut<VecType>, WholeArrayInOut<>);
+  typedef void ControlSignature(FieldIn<>, FieldOut<>, WholeArrayInOut<>);
   typedef void ExecutionSignature(_1, _2, _3);
   typedef _1 InputDomain;
 

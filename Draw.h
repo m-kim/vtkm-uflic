@@ -28,15 +28,15 @@ public:
     return pos[0] < 0 || pos[0] >= dim[0] || pos[1] < 0 || pos[1] >= dim[1] || pos[0] != pos[0] || pos[1] != pos[1];
   }
 #if 1
-  typedef void ControlSignature(AtomicArrayInOut<FieldType>,
-                                AtomicArrayInOut<FieldType>,
+  typedef void ControlSignature(AtomicArrayInOut<>,
+                                AtomicArrayInOut<>,
 #else
-	typedef void ControlSignature(WholeArrayInOut<FieldType>,
-																WholeArrayInOut<FieldType>,
+	typedef void ControlSignature(WholeArrayInOut<>,
+																WholeArrayInOut<>,
 #endif
-																FieldIn<VecType>,
-                                FieldIn<VecType>,
-                                FieldIn<FieldType>);
+																FieldIn<>,
+                                FieldIn<>,
+                                FieldIn<>);
   typedef void ExecutionSignature(_1, _2, _3, _4, _5);
 
   template<typename AtomicArrayType>

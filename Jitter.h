@@ -22,7 +22,7 @@ public:
 
 	}
 
-	typedef void ControlSignature(FieldIn<vtkm::Id>,
+	typedef void ControlSignature(FieldIn<>,
 																WholeArrayInOut<>,
 																WholeArrayInOut<>,
 
