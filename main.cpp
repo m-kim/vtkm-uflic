@@ -8,6 +8,7 @@
 #include <vtkm/rendering/Canvas.h>
 #include <vtkm/rendering/Mapper.h>
 #include <vtkm/rendering/Scene.h>
+#include <vtkm/exec/RandomArray.h>
 #include <fstream>
 #include <sstream>
 
@@ -69,6 +70,30 @@ public:
   vtkm::Id dim;
 };
 
+class SetRandomArray : public vtkm::worklet::WorkletMapField
+{
+public:
+  typedef void ControlSignature(FieldIn<>, RandomArrayInOut<>);
+  typedef void ExecutionSignature(WorkIndex, _2);
+  typedef _1 InputDomain;
+
+  VTKM_CONT
+  SetRandomArray(vtkm::Vec<vtkm::Int32,2> ab)
+    :a(ab[0]),
+      b(ab[1])
+  {
+
+  }
+  template <typename RandomArrayType>
+  VTKM_EXEC void operator()(const vtkm::Id& index, const RandomArrayType& randomArray) const
+  {
+    typedef typename RandomArrayType::ValueType ValueType;
+    randomArray.Set(static_cast<ValueType>(index),a,b);
+  }
+
+private:
+  vtkm::Int32 a,b;
+};
 
 template<typename VecComponentType>
 void saveAs(std::string fileName, 
@@ -95,7 +120,7 @@ void saveAs(std::string fileName,
 
 int main(int argc, char **argv)
 {
-  const vtkm::IdComponent ttl = 4, loop_cnt = 12;
+  const vtkm::IdComponent ttl = 10, loop_cnt = 75;
   const int Size = 2;
   typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
   typedef vtkm::Float32 VecType;
@@ -108,19 +133,19 @@ int main(int argc, char **argv)
 
   //std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
   //std::shared_ptr<Reader<VecType, Size,  ReaderPS<VecType, Size,ReaderXGC<VecType,Size>>>> reader(new ReaderPS<VecType, Size, ReaderXGC<VecType,Size>>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_normalized_256_99.vec", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-  std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), loop_cnt));
+  //std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), loop_cnt));
   //std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
-  typedef VectorField<VecType,Size> EvalType;
+  //typedef VectorField<VecType,Size> EvalType;
 
 
-//  int x = 512;
-//  int y = 256;
-//  if (argc > 1){
-//    x = atoi(argv[1]);
-//    y = atoi(argv[2]);
-//  }
-//  std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y)));
-//  typedef DoubleGyreField<VecType,Size> EvalType;
+  int x = 512;
+  int y = 256;
+  if (argc > 1){
+    x = atoi(argv[1]);
+    y = atoi(argv[2]);
+  }
+  std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y)));
+  typedef DoubleGyreField<VecType,Size> EvalType;
 
 
 
@@ -154,8 +179,8 @@ int main(int argc, char **argv)
     sr[i] = vtkm::cont::make_ArrayHandle(pr[i]);
 	}
 
-	
-	vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
+
+  //vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 
 	std::vector<FieldType> canvas[ttl], propertyField[2], omega(dim[0] * dim[1], 0), tex(dim[0] * dim[1], 0);
@@ -173,12 +198,12 @@ int main(int argc, char **argv)
 	}
 
 	vtkm::cont::ArrayHandle<FieldType > canvasArray[ttl], propFieldArray[2], omegaArray, texArray;
-	for (int i = 0; i < ttl; i++) {
-		canvasArray[i] = vtkm::cont::make_ArrayHandle(&canvas[i][0], canvas[i].size());
-	}
-	propFieldArray[0] = vtkm::cont::make_ArrayHandle(&propertyField[0][0], propertyField[0].size());
+  for (int i = 0; i < ttl; i++) {
+    canvasArray[i] = vtkm::cont::make_ArrayHandle(&canvas[i][0], canvas[i].size());
+  }
+  propFieldArray[0] = vtkm::cont::make_ArrayHandle(&propertyField[0][0], propertyField[0].size());
 	propFieldArray[1] = vtkm::cont::make_ArrayHandle(&propertyField[1][0], propertyField[1].size());
-	omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
+  omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
 	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
 
   DrawLineWorkletType drawline(bounds, dim);
@@ -198,28 +223,21 @@ int main(int argc, char **argv)
 //			x = i % dim[0];
 //			sl[loop %ttl].GetPortalControl().Set(i, vtkm::Vec<VecType, 2>(x + 0.5, y + 0.5));
 //		}
-    vtkm::worklet::DispatcherMapField<ResetParticles<VecType,Size>> resetDispatcher(dim[0]);
+    vtkm::worklet::DispatcherMapField<ResetParticles<VecType,Size>, DeviceAdapter> resetDispatcher(dim[0]);
     resetDispatcher.Invoke(indexArray, sl[loop%ttl]);
-		//reset the current canvas
-		for (int i = 0; i < canvasArray[loop % ttl].GetNumberOfValues(); i++) {
-			canvasArray[loop % ttl].GetPortalControl().Set(i, rand() % 255);
-		}
+    //reset the current canvas
+    vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32,2>(0,255));
+    randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
 
-//		for (int i = 0; i < propFieldArray[0].GetNumberOfValues(); i++) {
-//			propFieldArray[0].GetPortalControl().Set(i, 0);
-//			propFieldArray[1].GetPortalControl().Set(i, 0);
-//			omegaArray.GetPortalControl().Set(i, 0);
-//		}
-
-    vtkm::worklet::DispatcherMapField<zero_voxel> zeroDispatcher;
+    vtkm::worklet::DispatcherMapField<zero_voxel, DeviceAdapter> zeroDispatcher;
     zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
     zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
     zeroDispatcher.Invoke(indexArray, omegaArray);
 
-		for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
-			advect.Run(sl[i], sr[i], vecArray);
-			drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
-		}
+    for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
+      advect.Run(sl[i], sr[i], vecArray);
+      drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
+    }
 
 		sr.swap(sl);
 
@@ -234,7 +252,7 @@ int main(int argc, char **argv)
 
     t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
     reader->next(vecs);
-    vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
+    //vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	}
 
