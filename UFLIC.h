@@ -77,7 +77,7 @@ public:
   }
 
   template <typename PointStorage, typename FieldStorage>
-  vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, PointStorage> Run(
+  void Run(
     const vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, PointStorage>& _pl,
       const vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, PointStorage>& _pr,
     const vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, Size>, FieldStorage> fieldArray)
@@ -85,13 +85,21 @@ public:
     pl = _pl;
     pr = _pr;
     field = fieldArray;
-    return run();
+
+	pl.Internals->ControlArrayValid = true;
+	pl.Internals->ExecutionArrayValid = true;
+	pr.Internals->ControlArrayValid = true;
+	pr.Internals->ExecutionArrayValid = true;
+	field.Internals->ControlArrayValid = true;
+	field.Internals->ExecutionArrayValid = true;
+
+    run();
   }
 
   ~ParticleAdvectionWorklet() {}
 
 private:
-  vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, 2>> run(bool dumpOutput = false)
+  void run(bool dumpOutput = false)
   {
     typedef typename vtkm::worklet::DispatcherMapField<ParticleAdvectWorkletType>
       ParticleWorkletDispatchType;
@@ -100,9 +108,6 @@ private:
     ParticleAdvectWorkletType particleWorklet(integrator);
     ParticleWorkletDispatchType particleWorkletDispatch(particleWorklet);
     particleWorkletDispatch.Invoke(pl, pr, field);
-
-
-    return pr;
   }
 
   IntegratorType integrator;

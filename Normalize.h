@@ -69,9 +69,16 @@ public:
 		
 		Normalize NormalizeWorklet(dim);
 		NormalizeWorkletDispatchType dispatch(NormalizeWorklet);
-		canvas.PrepareForInPlace(DeviceAdapter());
-		omega.PrepareForInPlace(DeviceAdapter());
-		out.PrepareForInPlace(DeviceAdapter());
+		//canvas.PrepareForInPlace(DeviceAdapter());
+		//omega.PrepareForInPlace(DeviceAdapter());
+		//out.PrepareForInPlace(DeviceAdapter());
+
+		canvas.Internals->ControlArrayValid = true;
+		canvas.Internals->ExecutionArrayValid = true;
+		out.Internals->ControlArrayValid = true;
+		out.Internals->ExecutionArrayValid = true;
+		omega.Internals->ControlArrayValid = true;
+		omega.Internals->ExecutionArrayValid = true;
 
 		dispatch.Invoke(canvas,omega, out);
 

@@ -94,8 +94,15 @@ public:
 
 		Jitter JitterWorklet(dim, 256, 256 * 0.1, 256 * 0.9);
 		JitterWorkletDispatchType dispatch(JitterWorklet);
-		in.PrepareForInPlace(DeviceAdapter());
-		out.PrepareForInPlace(DeviceAdapter());
+		//in.PrepareForInPlace(DeviceAdapter());
+		//out.PrepareForInPlace(DeviceAdapter());
+
+		in.Internals->ControlArrayValid = true;
+		in.Internals->ExecutionArrayValid = true;
+		tex.Internals->ControlArrayValid = true;
+		tex.Internals->ExecutionArrayValid = true;
+		out.Internals->ControlArrayValid = true;
+		out.Internals->ExecutionArrayValid = true;
 
 		dispatch.Invoke(vtkm::cont::ArrayHandleIndex(dim[0] * dim[1]),
 			in, tex, out);

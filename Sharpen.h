@@ -78,9 +78,13 @@ public:
 
 		Sharpen sharpenWorklet(dim);
 		SharpenWorkletDispatchType dispatch(sharpenWorklet);
-		in.PrepareForInPlace(DeviceAdapter());
-		out.PrepareForInPlace(DeviceAdapter());
-		
+		//in.PrepareForInPlace(DeviceAdapter());
+		//out.PrepareForInPlace(DeviceAdapter());
+		in.Internals->ControlArrayValid = true;
+		in.Internals->ExecutionArrayValid = true;
+		out.Internals->ControlArrayValid = true;
+		out.Internals->ExecutionArrayValid = true;
+
 		dispatch.Invoke(vtkm::cont::ArrayHandleIndex(dim[0] * dim[1]),
 																		in, out);
 

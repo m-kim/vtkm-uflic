@@ -163,54 +163,45 @@ int main(int argc, char **argv)
   Bounds bounds = reader->bounds;
 
 	vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
-	std::vector<vtkm::Vec<VecType, Size>> pl[ttl], pr[ttl];
 
-  for (int i = 0; i < ttl; i++) {
-    for (int y = 0; y<dim[0]; y++) {
-      for (int x = 0; x<dim[1]; x++) {
-        pl[i].push_back(vtkm::Vec<VecType, Size>(x + 0.5, y + 0.5));
-        pr[i].push_back(vtkm::Vec<VecType, Size>(x + 0.5, y + 0.5));
-      }
-    }
-  }
-  std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>> sl(ttl), sr(ttl);
-	for (int i = 0; i<ttl; i++) {
-		sl[i] = vtkm::cont::make_ArrayHandle(pl[i]);
-    sr[i] = vtkm::cont::make_ArrayHandle(pr[i]);
+
+	std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>> sl(ttl), sr(ttl);
+	vtkm::worklet::DispatcherMapField<ResetParticles<VecType, Size>, DeviceAdapter> resetDispatcher(dim[0]);
+	vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32, 2>(0, 255));
+
+
+	vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), 1, dim[0]*dim[1]);
+
+	for (int i = 0; i < ttl; i++) {
+		sl[i].Allocate(dim[0] * dim[1]);
+		resetDispatcher.Invoke(indexArray, sl[i]);
+		sr[i].Allocate(dim[0] * dim[1]);
+		resetDispatcher.Invoke(indexArray, sr[i]);
+
 	}
 
 
   //vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
+	vtkm::Float32 t = 0;
+	const vtkm::Float32 dt = 0.1;
 
-	std::vector<FieldType> canvas[ttl], propertyField[2], omega(dim[0] * dim[1], 0), tex(dim[0] * dim[1], 0);
-  vtkm::Float32 t = 0;
-  const vtkm::Float32 dt = 0.1;
-		for (int i = 0; i < 2; i++) {
-		propertyField[i].resize(dim[0] * dim[1], 0);
-	}
-
-	for (int i = 0; i < ttl; i++) {
-		canvas[i].resize(dim[0] * dim[1], 0);
-	}
-	for (int i = 0; i < canvas[0].size(); i++) {
-		tex[i] = canvas[0][i] = rand() % 255;
-	}
 
 	vtkm::cont::ArrayHandle<FieldType > canvasArray[ttl], propFieldArray[2], omegaArray, texArray;
   for (int i = 0; i < ttl; i++) {
-    canvasArray[i] = vtkm::cont::make_ArrayHandle(&canvas[i][0], canvas[i].size());
+	  canvasArray[i].Allocate(dim[0] * dim[1]);
   }
-  propFieldArray[0] = vtkm::cont::make_ArrayHandle(&propertyField[0][0], propertyField[0].size());
-	propFieldArray[1] = vtkm::cont::make_ArrayHandle(&propertyField[1][0], propertyField[1].size());
-  omegaArray = vtkm::cont::make_ArrayHandle(&omega[0], omega.size());
-	texArray = vtkm::cont::make_ArrayHandle(&tex[0], tex.size());
+  propFieldArray[0].Allocate(dim[0] * dim[1]);
+  propFieldArray[1].Allocate(dim[0] * dim[1]);
 
+  omegaArray.Allocate(dim[0] * dim[1]);
+  texArray.Allocate(dim[0] * dim[1]);
+
+  randomDispatcher.Invoke(indexArray, texArray);
   DrawLineWorkletType drawline(bounds, dim);
 	DoNormalize<FieldType, DeviceAdapter> donorm(dim);
 	DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
 	DoJitter<FieldType, DeviceAdapter> dojitter(dim);
-  vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), 1, propFieldArray[0].GetNumberOfValues());
 
   for (int loop = 0; loop < loop_cnt; loop++) {
     EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
@@ -223,28 +214,33 @@ int main(int argc, char **argv)
 //			x = i % dim[0];
 //			sl[loop %ttl].GetPortalControl().Set(i, vtkm::Vec<VecType, 2>(x + 0.5, y + 0.5));
 //		}
-    vtkm::worklet::DispatcherMapField<ResetParticles<VecType,Size>, DeviceAdapter> resetDispatcher(dim[0]);
     resetDispatcher.Invoke(indexArray, sl[loop%ttl]);
     //reset the current canvas
-    vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32,2>(0,255));
     randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
 
     vtkm::worklet::DispatcherMapField<zero_voxel, DeviceAdapter> zeroDispatcher;
-    zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
+	propFieldArray[0].Internals->ControlArrayValid = true;
+	propFieldArray[0].Internals->ExecutionArrayValid = true;
+	propFieldArray[1].Internals->ControlArrayValid = true;
+	propFieldArray[1].Internals->ExecutionArrayValid = true;
+	omegaArray.Internals->ControlArrayValid = true;
+	omegaArray.Internals->ExecutionArrayValid = true;
+	zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
     zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
     zeroDispatcher.Invoke(indexArray, omegaArray);
 
     for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
-      advect.Run(sl[i], sr[i], vecArray);
-      drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
-    }
+		advect.Run(sl[i], sr[i], vecArray);
+		drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
+	}
 
-		sr.swap(sl);
+	sr.swap(sl);
+
 
 		donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
-    std::stringstream fn;
-    fn << "uflic-" << loop << ".pnm";
-    saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+    //std::stringstream fn;
+    //fn << "uflic-" << loop << ".pnm";
+    //saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
 
     //REUSE omegaArray as a temporary cache to sharpen
     dosharp.Run(propFieldArray[1], omegaArray);
