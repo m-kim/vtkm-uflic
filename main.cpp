@@ -156,6 +156,9 @@ int main(int argc, char **argv)
 
   reader->read(vecs);
 
+#ifdef VTKM_CUDA
+	cudaFree(0);
+#endif
   auto t0 = std::chrono::high_resolution_clock::now();
 
   vtkm::Id2 dim = reader->dim;
