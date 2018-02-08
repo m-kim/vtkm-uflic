@@ -85,14 +85,6 @@ public:
     pl = _pl;
     pr = _pr;
     field = fieldArray;
-
-	pl.Internals->ControlArrayValid = true;
-	pl.Internals->ExecutionArrayValid = true;
-	pr.Internals->ControlArrayValid = true;
-	pr.Internals->ExecutionArrayValid = true;
-	field.Internals->ControlArrayValid = true;
-	field.Internals->ExecutionArrayValid = true;
-
     run();
   }
 

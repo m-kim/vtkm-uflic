@@ -119,16 +119,6 @@ public:
 		canvas[0] = _canvas0;
 		canvas[1] = _canvas1;
 		omega = _omega;
-		pl.Internals->ControlArrayValid = true;
-		pl.Internals->ExecutionArrayValid = true;
-		pr.Internals->ControlArrayValid = true;
-		pr.Internals->ExecutionArrayValid = true;
-		canvas[0].Internals->ControlArrayValid = true;
-		canvas[0].Internals->ExecutionArrayValid = true;
-		canvas[1].Internals->ControlArrayValid = true;
-		canvas[1].Internals->ExecutionArrayValid = true;
-		omega.Internals->ControlArrayValid = true;
-		omega.Internals->ExecutionArrayValid = true;
 
 		//canvas[0].PrepareForInPlace(DeviceAdapterTag());
 		//canvas[1].PrepareForInPlace(DeviceAdapterTag());

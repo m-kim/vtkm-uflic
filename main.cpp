@@ -219,12 +219,6 @@ int main(int argc, char **argv)
     randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
 
     vtkm::worklet::DispatcherMapField<zero_voxel, DeviceAdapter> zeroDispatcher;
-	propFieldArray[0].Internals->ControlArrayValid = true;
-	propFieldArray[0].Internals->ExecutionArrayValid = true;
-	propFieldArray[1].Internals->ControlArrayValid = true;
-	propFieldArray[1].Internals->ExecutionArrayValid = true;
-	omegaArray.Internals->ControlArrayValid = true;
-	omegaArray.Internals->ExecutionArrayValid = true;
 	zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
     zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
     zeroDispatcher.Invoke(indexArray, omegaArray);
