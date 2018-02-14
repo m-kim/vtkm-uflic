@@ -120,7 +120,8 @@ void saveAs(std::string fileName,
 
 int main(int argc, char **argv)
 {
-  const vtkm::IdComponent ttl = 10, loop_cnt = 75;
+  const vtkm::IdComponent ttl = 10;
+  vtkm::IdComponent loop_cnt = 0;
   const int Size = 2;
   typedef VTKM_DEFAULT_DEVICE_ADAPTER_TAG DeviceAdapter;
   typedef vtkm::Float32 VecType;
@@ -128,14 +129,23 @@ int main(int argc, char **argv)
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
 
-
+#define RUN_BFIELD
   std::vector<vtkm::Vec<VecType, Size>> vecs;
-
-  //std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+#ifdef RUN_BFIELD
+  std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  typedef VectorField<VecType,Size> EvalType;
+  loop_cnt = 34;
+#elif defined RUN_PSI2Q
   //std::shared_ptr<Reader<VecType, Size,  ReaderPS<VecType, Size,ReaderXGC<VecType,Size>>>> reader(new ReaderPS<VecType, Size, ReaderXGC<VecType,Size>>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_normalized_256_99.vec", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-  //std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), loop_cnt));
-  //std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
-  //typedef VectorField<VecType,Size> EvalType;
+
+  std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), loop_cnt));
+  typedef VectorField<VecType,Size> EvalType;
+
+#elif RUN_XGC
+  std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("XGC_", vtkm::Id2(96,256), Bounds(0,96,0,256)));
+  typedef VectorField<VecType,Size> EvalType;
+
+#else
 
 
   int x = 512;
@@ -146,7 +156,7 @@ int main(int argc, char **argv)
   }
   std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y)));
   typedef DoubleGyreField<VecType,Size> EvalType;
-
+#endif
 
 
   typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
@@ -184,7 +194,7 @@ int main(int argc, char **argv)
 	}
 
 
-  //vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
+  vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	vtkm::Float32 t = 0;
 	const vtkm::Float32 dt = 0.1;
@@ -235,9 +245,9 @@ int main(int argc, char **argv)
 
 
 		donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
-    //std::stringstream fn;
-    //fn << "uflic-" << loop << ".pnm";
-    //saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+//    std::stringstream fn;
+//    fn << "uflic-" << loop << ".pnm";
+//    saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
 
     //REUSE omegaArray as a temporary cache to sharpen
     dosharp.Run(propFieldArray[1], omegaArray);
@@ -245,7 +255,7 @@ int main(int argc, char **argv)
 
     t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
     reader->next(vecs);
-    //vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
+    vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	}
 

@@ -45,7 +45,7 @@ public:
       return false;
 
     outVel = vecData.Get(vtkm::Floor(pos[1]) * dim[0] + vtkm::Floor(pos[0]));
-    return outVel.Dot(outVel) > 0;
+    return vtkm::dot(outVel,outVel) > 0;
   }
 
 
