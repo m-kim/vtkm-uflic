@@ -118,9 +118,7 @@ private:
   VTKM_EXEC
   FieldType b(FieldType t) const
   {
-
     return 1 - 2 * epsilon * vtkm::Sin(omega * t);
-
   }
   VTKM_EXEC
   FieldType f(FieldType x, FieldType t) const
@@ -130,28 +128,20 @@ private:
   VTKM_EXEC
   FieldType calcU(FieldType x, FieldType y, FieldType t) const
   {
-#ifdef VTKM_CUDA
-    return -FieldType(vtkm::Pi()) * A * vtkm::Sin(FieldType(vtkm::Pi())*f(x, t)) * vtkm::Cos(FieldType(vtkm::Pi())*y);
-#else
-    return -vtkm::Pi() * A * vtkm::Sin(vtkm::Pi()*f(x, t)) * vtkm::Cos(vtkm::Pi()*y);
-#endif
+    return -FieldType(vtkm::Pi()) * A * sin(FieldType(vtkm::Pi())*f(x, t)) * cos(FieldType(vtkm::Pi())*y);
   }
 
   VTKM_EXEC
   FieldType calcV(FieldType x, FieldType y, FieldType t) const
   {
-#ifdef VTKM_CUDA
-    return FieldType(vtkm::Pi()) * A * vtkm::Cos(FieldType(vtkm::Pi())*f(x, t)) * vtkm::Sin(FieldType(vtkm::Pi())*y) * (2 * a(t) * x + b(t));
-#else
-    return vtkm::Pi() * A * vtkm::Cos(vtkm::Pi()*f(x, t)) * vtkm::Sin(vtkm::Pi()*y) * (2 * a(t) * x + b(t));
-#endif
+    return FieldType(vtkm::Pi()) * A * cos(FieldType(vtkm::Pi())*f(x, t)) * sin(FieldType(vtkm::Pi())*y) * (2 * a(t) * x + b(t));
 	}
 
 	vtkm::Id2 dim;
   vtkm::Vec<FieldType,Size> spacing;
   Bounds bounds;
-  FieldType omega, A, epsilon;
-  FieldType t;
+  const FieldType omega, A, epsilon;
+  const FieldType t;
 
 };
 
