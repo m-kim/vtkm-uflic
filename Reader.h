@@ -24,9 +24,9 @@ public:
   {
 
   }
-  virtual void read(std::vector<vtkm::Vec<VecType, Size>> &in) = 0;
+  virtual void readFile() = 0;
 
-  virtual void next(std::vector<vtkm::Vec<VecType, Size>> &in){}
+  virtual void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in) = 0;
   vtkm::Id2 dim;
   Bounds bounds;
   const vtkm::Vec<VecType, Size> spacing;
@@ -52,7 +52,7 @@ public:
     this->ds = this->dataSetBuilder.Create(this->dim);
   }
 
-  void read(std::vector<vtkm::Vec<VecType, Size>> &in)
+  void readFile()
   {
     std::cout << this->filename.str() << std::endl;
 
@@ -70,7 +70,7 @@ public:
       std::getline(ss, tok, ' ');
       vec[1] = atof(tok.c_str());
 
-      in.push_back(vec);
+      buf.push_back(vec);
       //}
     }
     //	String text = null;
@@ -86,6 +86,8 @@ public:
     //	e.printStackTrace();
     //}
   }
+
+  std::vector<vtkm::Vec<VecType,Size>> buf;
 };
 
 template <typename VecType, vtkm::Id Size>
@@ -94,16 +96,17 @@ class ReaderVTK : public Reader<VecType, Size, ReaderVTK<VecType, Size>>
 public:
   typedef VectorField<VecType> EvalType;
 
-  ReaderVTK(std::string fn)
+  ReaderVTK(std::string fn, int _iter_cnt)
     : Reader<VecType, Size, ReaderVTK>(fn,
                             vtkm::Id2(512,512),
                             Bounds(0,512, 0, 512),
                             vtkm::Vec<VecType, Size>(1,1)
                             )
+    ,iter_cnt(_iter_cnt)
   {
 
   }
-  void read(std::vector<vtkm::Vec<VecType, Size>> &in)
+  void readFile()
   {
     std::cout << this->filename.str() << std::endl;
     ds = readVTK(this->filename.str());
@@ -119,11 +122,23 @@ public:
     ah = dah.Cast<vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>>>();
     std::cout << ah.GetNumberOfValues() << std::endl;
     loop = 20;
-    in.resize(this->dim[0] * this->dim[1]);
-    next(in);
+    buffer.resize(iter_cnt);
+    for (int i=0; i<iter_cnt; i++){
+      buffer[i].resize(this->dim[0] * this->dim[1]);
+      parse(buffer[i]);
+    }
+
+    vec_iter = buffer.begin();
+
   }
 
-  void next(std::vector<vtkm::Vec<VecType, Size>> &in)
+  void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in)
+  {
+    in = vtkm::cont::make_ArrayHandle(vec_iter, this->dim[0]*this->dim[1]);
+    vec_iter++;
+  }
+
+  void parse(std::vector<vtkm::Vec<VecType, Size>> &in)
   {
 
     for (int z=0; z<this->dim[1]; z++){
@@ -165,6 +180,11 @@ public:
 
   vtkm::Id3 dim3;
   vtkm::Id loop;
+  std::vector<std::vector<vtkm::Vec<VecType, Size>>> buffer;
+
+  typename std::vector<std::vector<vtkm::Vec<VecType, Size>>>::iterator vec_iter;
+  int iter_cnt;
+
 };
 
 template <typename VecType, vtkm::Id Size>
@@ -183,8 +203,12 @@ public:
                             )
   {
   }
-  void read(std::vector<vtkm::Vec<VecType, Size>> &in)
+  void readFile()
   {
+  }
+  void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in)
+  {
+
   }
 };
 
@@ -216,13 +240,15 @@ public:
     for (int i=loop; i<vtkm::Min(frameCnt, 100-loop); i++){
       this->filename.str("");
       this->filename << base_fn << i << ".vel";
-      this->read(mem[i]);
+      this->readFile();
+      mem[i] = this->buf;
+      this->buf.resize(0);
     }
   }
 
-  void next(std::vector<vtkm::Vec<VecType, Size>> &in)
+  void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in)
   {
-    in = mem[loop++];
+    in = vtkm::cont::make_ArrayHandle(&mem[loop++], this->dim[0]*this->dim[1]);
   }
 
   std::string base_fn;

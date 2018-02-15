@@ -129,15 +129,15 @@ int main(int argc, char **argv)
 
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
 
-#define RUN_BFIELD
+
   std::vector<vtkm::Vec<VecType, Size>> vecs;
 #ifdef RUN_BFIELD
-  std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk"));
+  std::shared_ptr<Reader<VecType, Size, ReaderVTK<VecType, Size>>> reader(new ReaderVTK<VecType, Size>("BField_2d.vtk", 34));
   typedef VectorField<VecType,Size> EvalType;
   loop_cnt = 34;
 #elif defined RUN_PSI2Q
   //std::shared_ptr<Reader<VecType, Size,  ReaderPS<VecType, Size,ReaderXGC<VecType,Size>>>> reader(new ReaderPS<VecType, Size, ReaderXGC<VecType,Size>>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_normalized_256_99.vec", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-
+  loop_cnt = 99;
   std::shared_ptr<ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>> reader(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), loop_cnt));
   typedef VectorField<VecType,Size> EvalType;
 
@@ -156,6 +156,7 @@ int main(int argc, char **argv)
   }
   std::shared_ptr<Reader<VecType, Size,ReaderCalc<VecType,Size>>> reader(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y)));
   typedef DoubleGyreField<VecType,Size> EvalType;
+  loop_cnt = 75;
 #endif
 
 
@@ -164,7 +165,7 @@ int main(int argc, char **argv)
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
-  reader->read(vecs);
+  reader->readFile();
 
 #ifdef VTKM_CUDA
 	cudaFree(0);
@@ -193,9 +194,6 @@ int main(int argc, char **argv)
 
 	}
 
-
-  vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
-
 	vtkm::Float32 t = 0;
 	const vtkm::Float32 dt = 0.1;
 
@@ -220,13 +218,8 @@ int main(int argc, char **argv)
     EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
     IntegratorType integrator(eval, 3.0);
     ParticleAdvectionWorkletType advect(integrator);
-    //std::cout << "t: " << t << std::endl;
-//		for (int i = 0; i < sr[loop % ttl].GetNumberOfValues(); i++) {
-//			vtkm::Id x, y;
-//			y = i / dim[0];
-//			x = i % dim[0];
-//			sl[loop %ttl].GetPortalControl().Set(i, vtkm::Vec<VecType, 2>(x + 0.5, y + 0.5));
-//		}
+
+    reader->next(vecArray);
     resetDispatcher.Invoke(indexArray, sl[loop%ttl]);
     //reset the current canvas
     randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
@@ -254,8 +247,6 @@ int main(int argc, char **argv)
     dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
     t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
-    reader->next(vecs);
-    vecArray = vtkm::cont::make_ArrayHandle(&vecs[0], vecs.size());
 
 	}
 
