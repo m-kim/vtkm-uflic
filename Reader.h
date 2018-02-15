@@ -134,7 +134,7 @@ public:
 
   void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in)
   {
-    in = vtkm::cont::make_ArrayHandle(vec_iter, this->dim[0]*this->dim[1]);
+    in = vtkm::cont::make_ArrayHandle(&(*vec_iter)[0], this->dim[0]*this->dim[1]);
     vec_iter++;
   }
 
@@ -248,7 +248,7 @@ public:
 
   void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in)
   {
-    in = vtkm::cont::make_ArrayHandle(&mem[loop++], this->dim[0]*this->dim[1]);
+    in = vtkm::cont::make_ArrayHandle(&mem[loop++][0], this->dim[0]*this->dim[1]);
   }
 
   std::string base_fn;
