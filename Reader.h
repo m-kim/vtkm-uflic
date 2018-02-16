@@ -6,21 +6,23 @@
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/DataSetBuilderUniform.h>
 
-template <typename VecType, vtkm::Id Size, class Derived>
+template <typename VecType, vtkm::Id Size>
 class Reader
 {
 public:
-  typedef Derived DerivedType;
+
 
   Reader(){}
   Reader(std::string fn,
          vtkm::Id2 d,
          Bounds bb,
-         vtkm::Vec<VecType, Size> sp)
+         vtkm::Vec<VecType, Size> sp,
+         const vtkm::Id &_iter_cnt = 0)
     : filename(fn),
       dim(d),
       bounds(bb),
-        spacing(sp)
+        spacing(sp),
+        iter_cnt(_iter_cnt)
   {
 
   }
@@ -33,19 +35,22 @@ public:
   vtkm::cont::DataSetBuilderUniform dataSetBuilder;
   vtkm::cont::DataSet ds;
   std::stringstream filename;
+  const vtkm::Id iter_cnt;
 };
 
-template <typename VecType, vtkm::Id Size, class Derived>
-class ReaderPS : public Reader<VecType, Size, ReaderPS<VecType, Size, Derived>>
+template <typename VecType, vtkm::Id Size>
+class ReaderPS : public Reader<VecType, Size>
 {
 public:
   ReaderPS(std::string fn,
            vtkm::Id2 d,
-           Bounds bb)
-    : Reader<VecType, Size, ReaderPS>(fn,
+           Bounds bb,
+           const vtkm::Id &_iter_cnt)
+    : Reader<VecType, Size>(fn,
                             d,
                             bb,
-                            vtkm::Vec<VecType, Size>(1,1)
+                            vtkm::Vec<VecType, Size>(1,1),
+                            _iter_cnt
                             )
   {
 
@@ -91,18 +96,18 @@ public:
 };
 
 template <typename VecType, vtkm::Id Size>
-class ReaderVTK : public Reader<VecType, Size, ReaderVTK<VecType, Size>>
+class ReaderVTK : public Reader<VecType, Size>
 {
 public:
   typedef VectorField<VecType> EvalType;
 
-  ReaderVTK(std::string fn, int _iter_cnt)
-    : Reader<VecType, Size, ReaderVTK>(fn,
+  ReaderVTK(std::string fn, const vtkm::Id &_iter_cnt)
+    : Reader<VecType, Size>(fn,
                             vtkm::Id2(512,512),
                             Bounds(0,512, 0, 512),
-                            vtkm::Vec<VecType, Size>(1,1)
+                            vtkm::Vec<VecType, Size>(1,1),
+                            _iter_cnt
                             )
-    ,iter_cnt(_iter_cnt)
   {
 
   }
@@ -122,8 +127,8 @@ public:
     ah = dah.Cast<vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>>>();
     std::cout << ah.GetNumberOfValues() << std::endl;
     loop = 20;
-    buffer.resize(iter_cnt);
-    for (int i=0; i<iter_cnt; i++){
+    buffer.resize(this->iter_cnt);
+    for (int i=0; i<this->iter_cnt; i++){
       buffer[i].resize(this->dim[0] * this->dim[1]);
       parse(buffer[i]);
     }
@@ -183,23 +188,24 @@ public:
   std::vector<std::vector<vtkm::Vec<VecType, Size>>> buffer;
 
   typename std::vector<std::vector<vtkm::Vec<VecType, Size>>>::iterator vec_iter;
-  int iter_cnt;
 
 };
 
 template <typename VecType, vtkm::Id Size>
-class ReaderCalc : public Reader<VecType, Size, ReaderCalc<VecType, Size>>
+class ReaderCalc : public Reader<VecType, Size>
 {
 public:
   typedef DoubleGyreField<VecType, Size> EvalType;
   ReaderCalc(std::string fn,
-             vtkm::Id2 d = vtkm::Id2(512,512),
-             Bounds bb = Bounds(0,512, 0, 512),
-             vtkm::Vec<VecType, Size> sp = vtkm::Vec<VecType, Size>(2,1))
-    : Reader<VecType, Size, ReaderCalc>(fn,
+             vtkm::Id2 d,
+             Bounds bb,
+             vtkm::Vec<VecType, Size> sp,
+             const vtkm::Id &_iter_cnt)
+    : Reader<VecType, Size>(fn,
                             d,
                             bb,
-                            sp
+                            sp,
+                            _iter_cnt
                             )
   {
   }
@@ -210,11 +216,12 @@ public:
   {
 
   }
+
 };
 
 
 template <typename VecType, vtkm::Id Size>
-class ReaderXGC : public ReaderPS<VecType, Size, ReaderXGC<VecType, Size>>
+class ReaderXGC : public ReaderPS<VecType, Size>
 {
 public:
   typedef VectorField<VecType> EvalType;
@@ -222,13 +229,13 @@ public:
   ReaderXGC(std::string fn,
            vtkm::Id2 d,
            Bounds bb,
-            vtkm::Id frame_cnt)
-    : ReaderPS<VecType, Size,ReaderXGC>(fn,
+            vtkm::Id _iter_cnt)
+    : ReaderPS<VecType, Size>(fn,
                             d,
-                            bb
+                            bb,
+                              _iter_cnt
                             ),
-      base_fn(fn),
-      frameCnt(frame_cnt)
+      base_fn(fn)
 
   {
     this->ds = this->dataSetBuilder.Create(this->dim);
@@ -237,13 +244,16 @@ public:
     std::cout << this->filename.str() << std::endl;
 
     mem.resize(100 - loop);
-    for (int i=loop; i<vtkm::Min(frameCnt, 100-loop); i++){
+  }
+  void readFile(){
+    for (int i=loop; i<vtkm::Min(this->iter_cnt, 100-loop); i++){
       this->filename.str("");
       this->filename << base_fn << i << ".vel";
-      this->readFile();
+      ReaderPS<VecType, Size>::readFile();
       mem[i] = this->buf;
       this->buf.resize(0);
     }
+
   }
 
   void next(vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>  &in)
@@ -253,6 +263,6 @@ public:
 
   std::string base_fn;
   std::vector<std::vector<vtkm::Vec<VecType, Size>>> mem;
-  vtkm::Id frameCnt, loop;
+  vtkm::Id loop;
 };
 #endif
