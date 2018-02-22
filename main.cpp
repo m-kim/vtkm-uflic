@@ -131,7 +131,7 @@ void run( std::shared_ptr<Reader<VecType, Size>> reader)
   typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
   typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
 
-  const vtkm::IdComponent ttl = 10;
+  const vtkm::IdComponent ttl = 4;
 
   const vtkm::Id loop_cnt = reader->iter_cnt;
   reader->readFile();
@@ -191,7 +191,13 @@ void run( std::shared_ptr<Reader<VecType, Size>> reader)
     reader->next(vecArray);
     resetDispatcher.Invoke(indexArray, sl[loop%ttl]);
     //reset the current canvas
+#ifdef VTKM_CUDA
     randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
+#else
+    for (int i=0; i<canvasArray[loop%ttl].GetNumberOfValues(); i++){
+      canvasArray[loop%ttl].GetPortalControl().Set(i,rand()%255);
+    }
+#endif
 
     vtkm::worklet::DispatcherMapField<zero_voxel, DeviceAdapter> zeroDispatcher;
     zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
@@ -284,20 +290,20 @@ int main(int argc, char **argv)
   std::shared_ptr<Reader<VecType, Size>> reader;
 
   if (std::get<0>(ret) == 1){
-    reader = std::shared_ptr<ReaderVTK<VecType, Size>>(new ReaderVTK<VecType, Size>("BField_2d.vtk", 34));
+    reader = std::shared_ptr<ReaderVTK<VecType, Size>>(new ReaderVTK<VecType, Size>("/home/mkim/vtkm-uflic/BField_2d.vtk", 12));
     run<VectorField<VecType,Size>,VecType,Size>(reader);
   }
 
   else if (std::get<0>(ret) == 2){
     //std::shared_ptr<Reader<VecType, Size,  ReaderPS<VecType, Size,ReaderXGC<VecType,Size>>>> reader(new ReaderPS<VecType, Size, ReaderXGC<VecType,Size>>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_normalized_256_99.vec", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-    reader = std::shared_ptr<ReaderXGC<VecType, Size>>(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), 99));
+    reader = std::shared_ptr<ReaderXGC<VecType, Size>>(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), 12));
     run<VectorField<VecType,Size>,VecType,Size>(reader);
   }
   else{
 
     int x = std::get<1>(ret);
     int y = std::get<2>(ret);
-    reader = std::shared_ptr<ReaderCalc<VecType, Size>>(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y), vtkm::Vec<VecType,Size>(2,1), 99));
+    reader = std::shared_ptr<ReaderCalc<VecType, Size>>(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y), vtkm::Vec<VecType,Size>(2,1), 12));
     run<DoubleGyreField<VecType,Size>,VecType,Size>(reader);
   }
 }
