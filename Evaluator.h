@@ -64,23 +64,23 @@ class DoubleGyreField
 public:
   VTKM_CONT
   DoubleGyreField()
-    : omega(2 * vtkm::Pi() / 10.0),
-      A(0.1),
-      epsilon(1e-6),
+    : omega(2 * vtkm::Pi()/10.0),
+      A(0.25),
+      epsilon(0.25),
       t(0.0)
   {
   }
 
   VTKM_CONT
-  DoubleGyreField(const vtkm::Float32 t,
+  DoubleGyreField(const vtkm::Float32 _t,
                   const Bounds& bb,
                   const vtkm::Vec<FieldType, Size> s)
     : bounds( bb ),
       spacing(s),
-      omega(2 * vtkm::Pi() / 10.0),
-      A(0.1),
-      epsilon(1e-6),
-      t(0.0)
+      omega(2 * vtkm::Pi()/10.0),
+      A(0.25),
+      epsilon(0.25),
+      t(_t)
   {
 		dim[0] = bounds.X.Max - bounds.X.Min;
 		dim[1] = bounds.Y.Max - bounds.Y.Min;
