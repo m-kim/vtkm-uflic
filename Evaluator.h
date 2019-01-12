@@ -6,7 +6,6 @@
 #include <vtkm/cont/CellSetStructured.h>
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/DeviceAdapter.h>
-#include <vtkm/cont/DynamicArrayHandle.h>
 #include "Bounds2.h"
 
 template <typename FieldType, vtkm::IdComponent Size = 2>

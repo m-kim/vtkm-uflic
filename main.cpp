@@ -8,7 +8,8 @@
 #include <vtkm/rendering/Canvas.h>
 #include <vtkm/rendering/Mapper.h>
 #include <vtkm/rendering/Scene.h>
-#include <vtkm/exec/RandomArray.h>
+#include "RandomMapField.h"
+#include "RandomArray.h"
 #include <fstream>
 #include <sstream>
 #include <memory>
@@ -74,7 +75,7 @@ public:
   vtkm::Id dim;
 };
 
-class SetRandomArray : public vtkm::worklet::WorkletMapField
+class SetRandomArray : public RandomWorklet
 {
 public:
   typedef void ControlSignature(FieldIn<>, RandomArrayInOut<>);
@@ -149,7 +150,7 @@ void run( std::shared_ptr<Reader<VecType, Size>> reader)
 
 
   std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>> sl(ttl), sr(ttl);
-  vtkm::worklet::DispatcherMapField<ResetParticles<VecType, Size>, DeviceAdapter> resetDispatcher(dim[0]);
+  vtkm::worklet::DispatcherMapField<ResetParticles<VecType, Size>> resetDispatcher(dim[0]);
   vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32, 2>(0, 255));
 
 
@@ -199,7 +200,7 @@ void run( std::shared_ptr<Reader<VecType, Size>> reader)
     }
 #endif
 
-    vtkm::worklet::DispatcherMapField<zero_voxel, DeviceAdapter> zeroDispatcher;
+    vtkm::worklet::DispatcherMapField<zero_voxel> zeroDispatcher;
     zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
     zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
     zeroDispatcher.Invoke(indexArray, omegaArray);
@@ -223,7 +224,7 @@ void run( std::shared_ptr<Reader<VecType, Size>> reader)
     dosharp.Run(propFieldArray[1], omegaArray);
     dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
-    t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
+    //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
 
   }
 

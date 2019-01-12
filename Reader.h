@@ -180,7 +180,7 @@ public:
 
 
   vtkm::cont::DataSet ds;
-  vtkm::cont::DynamicArrayHandle dah;
+  vtkm::cont::VariantArrayHandle dah;
   vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64,3>> ah;
 
   vtkm::Id3 dim3;

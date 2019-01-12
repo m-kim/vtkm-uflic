@@ -25,7 +25,7 @@ project(vtkm-uflic)
 
 #Find the VTK-m package
 find_package(VTKm REQUIRED
-  OPTIONAL_COMPONENTS Serial TBB CUDA
+  OPTIONAL_COMPONENTS OpenMP Serial TBB CUDA
   )
 
 
@@ -33,6 +33,12 @@ set(UFLIC_SRC
   main.cpp
 )
 set(UFLIC_HDR
+    DeviceAdapterAlgorithmCuda.h
+    DeviceAdapterAlgorithmGeneral.h
+    RandomArray.h
+    TransportTagRandomArray.h
+    TypeCheckTagRandomArray.h
+    RandomMapField.h
   Bounds2.h
   Convolve.h
   Draw.h
@@ -44,10 +50,14 @@ set(UFLIC_HDR
   Sharpen.h
   UFLIC.h
 )
-add_executable(UFLIC_rendering_Serial ${UFLIC_SRC} ${UFLIC_HDR})
 
-target_include_directories(UFLIC_rendering_Serial PRIVATE 	${VTKm_INCLUDE_DIRS})
-target_link_libraries(UFLIC_rendering_Serial ${VTKm_LIBRARIES})
+
+add_executable(UFLIC_rendering_Serial ${UFLIC_SRC} ${UFLIC_HDR})
+if (VTKm_FOUND)
+    message("uggghhh ${VTKm_DIR}")
+endif()
+target_include_directories(UFLIC_rendering_Serial PRIVATE vtkm_cont)
+target_link_libraries(UFLIC_rendering_Serial vtkm_cont )
 target_compile_options(UFLIC_rendering_Serial PRIVATE ${VTKm_COMPILE_OPTIONS})
 target_compile_definitions(UFLIC_rendering_Serial PRIVATE
                        "VTKM_DEVICE_ADAPTER=VTKM_DEVICE_ADAPTER_SERIAL")
@@ -77,6 +87,15 @@ if(VTKm_TBB_FOUND)
     target_link_libraries(UFLIC_rendering_TBB PRIVATE ${VTKm_LIBRARIES})
     target_compile_options(UFLIC_rendering_TBB PRIVATE ${VTKm_COMPILE_OPTIONS})
     target_compile_definitions(UFLIC_rendering_TBB PRIVATE "VTKM_DEVICE_ADAPTER=VTKM_DEVICE_ADAPTER_TBB")
+
+endif()
+
+if(VTKm_OPENMP_FOUND)
+    add_executable(UFLIC_rendering_OpenMP ${UFLIC_SRC} ${UFLIC_HDR})
+    target_include_directories(UFLIC_rendering_OpenMP PRIVATE ${VTKm_INCLUDE_DIRS})
+    target_link_libraries(UFLIC_rendering_OpenMP PRIVATE ${VTKm_LIBRARIES})
+    target_compile_options(UFLIC_rendering_OpenMP PRIVATE ${VTKm_COMPILE_OPTIONS})
+    target_compile_definitions(UFLIC_rendering_OpenMP PRIVATE "VTKM_DEVICE_ADAPTER=VTKM_DEVICE_ADAPTER_TBB")
 
 endif()
 
