@@ -87,150 +87,156 @@ public:
     typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
     typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size> ParticleAdvectionWorkletType;
     typedef DrawLineWorklet<FieldType, VecType, Size> DrawLineWorkletType;
-
-    UFLIC()
-      :do_print(false){}
+    using ArrayType = vtkm::cont::ArrayHandle<FieldType >;
+    UFLIC(int _ttl = 4)
+    : ttl(_ttl)
+    , do_print(false)
+    {
+      canvasArray.resize(ttl);
+    }
     void run( std::shared_ptr<Reader<VecType, Size>> reader)
     {
+      const vtkm::Id loop_cnt = reader->iter_cnt;
+      reader->readFile();
 
-    const vtkm::IdComponent ttl = 4;
+      #ifdef VTKM_CUDA
+      cudaFree(0);
+      #endif
+      auto t0 = std::chrono::high_resolution_clock::now();
 
-    const vtkm::Id loop_cnt = reader->iter_cnt;
-    reader->readFile();
+      vtkm::Id2 dim = reader->dim;
+      vtkm::Vec<VecType,Size> spacing = reader->spacing;
+      Bounds bounds = reader->bounds;
 
-    #ifdef VTKM_CUDA
-    cudaFree(0);
-    #endif
-    auto t0 = std::chrono::high_resolution_clock::now();
-
-    vtkm::Id2 dim = reader->dim;
-    vtkm::Vec<VecType,Size> spacing = reader->spacing;
-    Bounds bounds = reader->bounds;
-
-    vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
+      vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> vecArray;
 
 
-    std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>> sl(ttl), sr(ttl);
-    vtkm::worklet::DispatcherMapField<ResetParticles<VecType, Size>> resetDispatcher(dim[0]);
-    vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32, 2>(0, 255));
+      std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>>> sl(ttl), sr(ttl);
+      vtkm::worklet::DispatcherMapField<ResetParticles<VecType, Size>> resetDispatcher(dim[0]);
+      vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32, 2>(0, 255));
 
 
-    vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), 1, dim[0]*dim[1]);
+      vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), 1, dim[0]*dim[1]);
 
-    for (int i = 0; i < ttl; i++) {
-        sl[i].Allocate(dim[0] * dim[1]);
-        resetDispatcher.Invoke(indexArray, sl[i]);
-        sr[i].Allocate(dim[0] * dim[1]);
-        resetDispatcher.Invoke(indexArray, sr[i]);
+      for (int i = 0; i < ttl; i++) {
+          sl[i].Allocate(dim[0] * dim[1]);
+          resetDispatcher.Invoke(indexArray, sl[i]);
+          sr[i].Allocate(dim[0] * dim[1]);
+          resetDispatcher.Invoke(indexArray, sr[i]);
 
-    }
+      }
 
-    vtkm::Float32 t = 0;
-    const vtkm::Float32 dt = 0.1;
-
-
-    vtkm::cont::ArrayHandle<FieldType > canvasArray[ttl], propFieldArray[2], omegaArray, texArray;
-    for (int i = 0; i < ttl; i++) {
-        canvasArray[i].Allocate(dim[0] * dim[1]);
-    }
-    propFieldArray[0].Allocate(dim[0] * dim[1]);
-    propFieldArray[1].Allocate(dim[0] * dim[1]);
-
-    omegaArray.Allocate(dim[0] * dim[1]);
-    texArray.Allocate(dim[0] * dim[1]);
-
-    randomDispatcher.Invoke(indexArray, texArray);
-    DrawLineWorkletType drawline(bounds, dim);
-    DoNormalize<FieldType> donorm(dim);
-    DoSharpen<FieldType> dosharp(dim);
-    DoJitter<FieldType> dojitter(dim);
-
-    for (int loop = 0; loop < loop_cnt; loop++) {
-        EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
-        IntegratorType integrator(eval, 3.0);
-        ParticleAdvectionWorkletType advect(integrator);
-
-        reader->next(vecArray);
-        resetDispatcher.Invoke(indexArray, sl[loop%ttl]);
-        //reset the current canvas
-    #ifdef VTKM_CUDA
-        randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
-    #else
-        for (int i=0; i<canvasArray[loop%ttl].GetNumberOfValues(); i++){
-        canvasArray[loop%ttl].GetPortalControl().Set(i,rand()%255);
-        }
-    #endif
-
-        vtkm::worklet::DispatcherMapField<zero_voxel> zeroDispatcher;
-        zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
-        zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
-        zeroDispatcher.Invoke(indexArray, omegaArray);
-
-        for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
-        advect.Run(sl[i], sr[i], vecArray);
-        drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
-        }
-
-        sr.swap(sl);
+      vtkm::Float32 t = 0;
+      const vtkm::Float32 dt = 0.1;
 
 
-        donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
-        if (do_print){
-        std::stringstream fn;
-        fn << "uflic-" << loop << ".pnm";
-        saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
-        }
+      for (int i = 0; i < ttl; i++) {
+          canvasArray[i].Allocate(dim[0] * dim[1]);
+      }
+      propFieldArray[0].Allocate(dim[0] * dim[1]);
+      propFieldArray[1].Allocate(dim[0] * dim[1]);
 
-        //REUSE omegaArray as a temporary cache to sharpen
-        dosharp.Run(propFieldArray[1], omegaArray);
-        dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
+      omegaArray.Allocate(dim[0] * dim[1]);
+      texArray.Allocate(dim[0] * dim[1]);
 
-        //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
+      randomDispatcher.Invoke(indexArray, texArray);
+      DrawLineWorkletType drawline(bounds, dim);
+      DoNormalize<FieldType> donorm(dim);
+      DoSharpen<FieldType> dosharp(dim);
+      DoJitter<FieldType> dojitter(dim);
 
-    }
+      for (int loop = 0; loop < loop_cnt; loop++) {
+          EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);
+          IntegratorType integrator(eval, 3.0);
+          ParticleAdvectionWorkletType advect(integrator);
 
-    auto t1 = std::chrono::high_resolution_clock::now();
+          reader->next(vecArray);
+          resetDispatcher.Invoke(indexArray, sl[loop%ttl]);
+          //reset the current canvas
+      #ifdef VTKM_CUDA
+          randomDispatcher.Invoke(indexArray, canvasArray[loop%ttl]);
+      #else
+          for (int i=0; i<canvasArray[loop%ttl].GetNumberOfValues(); i++){
+          canvasArray[loop%ttl].GetPortalControl().Set(i,rand()%255);
+          }
+      #endif
 
-    std::cout << "Finished dt: " << dt << " cnt: " << loop_cnt << " time: " << std::chrono::duration<double>(t1-t0).count() << " s" << std::endl;
-    std::stringstream fn;
-    fn << "uflic-final" << ".pnm";
-    saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+          vtkm::worklet::DispatcherMapField<zero_voxel> zeroDispatcher;
+          zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
+          zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
+          zeroDispatcher.Invoke(indexArray, omegaArray);
+
+          for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
+          advect.Run(sl[i], sr[i], vecArray);
+          drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
+          }
+
+          sr.swap(sl);
 
 
-    //vtkm::rendering::Mapper mapper;
-    //vtkm::rendering::Canvas canvas(512, 512);
-    //vtkm::rendering::Scene scene;
+          donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
+          if (do_print){
+          std::stringstream fn;
+          fn << "uflic-" << loop << ".pnm";
+          saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+          }
 
-    //scene.AddActor(vtkm::rendering::Actor(
-    //	ds.GetCellSet(), ds.GetCoordinateSystem(), ds.GetField(fieldNm), colorTable));
-    //vtkm::rendering::Camera camera;
-    //SetCamera<ViewType>(camera, ds.GetCoordinateSystem().GetBounds());
+          //REUSE omegaArray as a temporary cache to sharpen
+          dosharp.Run(propFieldArray[1], omegaArray);
+          dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
-    //vtkm::rendering::View2D view;
+          //t += dt;// / (vtkm::Float32)ttl + 1.0 / (vtkm::Float32)ttl;
+
+      }
+
+      result = propFieldArray[1];
+      auto t1 = std::chrono::high_resolution_clock::now();
+
+      std::cout << "Finished dt: " << dt << " cnt: " << loop_cnt << " time: " << std::chrono::duration<double>(t1-t0).count() << " s" << std::endl;
+      std::stringstream fn;
+      fn << "uflic-final" << ".pnm";
+      saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+
+
+      //vtkm::rendering::Mapper mapper;
+      //vtkm::rendering::Canvas canvas(512, 512);
+      //vtkm::rendering::Scene scene;
+
+      //scene.AddActor(vtkm::rendering::Actor(
+      //	ds.GetCellSet(), ds.GetCoordinateSystem(), ds.GetField(fieldNm), colorTable));
+      //vtkm::rendering::Camera camera;
+      //SetCamera<ViewType>(camera, ds.GetCoordinateSystem().GetBounds());
+
+      //vtkm::rendering::View2D view;
 
     }
     template<typename VecComponentType>
     void saveAs(std::string fileName,
-    vtkm::cont::ArrayHandle<VecComponentType > canvasArray,
-    vtkm::Id Width, vtkm::Id Height) {
-    std::ofstream of(fileName.c_str(), std::ios_base::binary | std::ios_base::out);
-    of << "P6" << std::endl << Width << " " << Height << std::endl << 255 << std::endl;
-    //ColorBufferType::PortalConstControl colorPortal = this->ColorBuffer.GetPortalConstControl();
-    for (vtkm::Id yIndex = Height - 1; yIndex >= 0; yIndex--)
+                vtkm::cont::ArrayHandle<VecComponentType > canvasArray,
+                vtkm::Id Width, vtkm::Id Height) 
     {
-        for (vtkm::Id xIndex = 0; xIndex < Width; xIndex++)
-        {
-        VecComponentType val = canvasArray.GetPortalConstControl().Get(yIndex * Width + xIndex);
+      std::ofstream of(fileName.c_str(), std::ios_base::binary | std::ios_base::out);
+      of << "P6" << std::endl << Width << " " << Height << std::endl << 255 << std::endl;
+      //ColorBufferType::PortalConstControl colorPortal = this->ColorBuffer.GetPortalConstControl();
+      for (vtkm::Id yIndex = Height - 1; yIndex >= 0; yIndex--)
+      {
+          for (vtkm::Id xIndex = 0; xIndex < Width; xIndex++)
+          {
+          VecComponentType val = canvasArray.GetPortalConstControl().Get(yIndex * Width + xIndex);
 
-        vtkm::Vec<VecComponentType, 4> tuple(val, val, val, val);
-        of << (unsigned char)(tuple[0]);
-        of << (unsigned char)(tuple[1]);
-        of << (unsigned char)(tuple[2]);
-        }
-    }
-    of.close();
+          vtkm::Vec<VecComponentType, 4> tuple(val, val, val, val);
+          of << (unsigned char)(tuple[0]);
+          of << (unsigned char)(tuple[1]);
+          of << (unsigned char)(tuple[2]);
+          }
+      }
+      of.close();
     }
 
     bool do_print;
+    std::vector<ArrayType> canvasArray;
+    ArrayType propFieldArray[2],result, omegaArray, texArray;
+    const vtkm::IdComponent ttl;
+
 };
 #endif
