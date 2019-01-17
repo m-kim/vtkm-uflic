@@ -78,15 +78,15 @@ private:
   vtkm::Int32 a,b;
 };
 
-template<typename EvalType, typename VecType, typename DeviceAdapter, vtkm::IdComponent Size>
+template<typename EvalType, typename VecType, vtkm::IdComponent Size>
 class UFLIC
 {
 public:
     typedef vtkm::Int32 FieldType;
     typedef vtkm::cont::ArrayHandle<vtkm::Vec<VecType, Size>> VecHandle;
     typedef RK4Integrator<EvalType, VecType, Size> IntegratorType;
-    typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size, DeviceAdapter> ParticleAdvectionWorkletType;
-    typedef DrawLineWorklet<FieldType, VecType, Size, DeviceAdapter> DrawLineWorkletType;
+    typedef ParticleAdvectionWorklet<IntegratorType, VecType, Size> ParticleAdvectionWorkletType;
+    typedef DrawLineWorklet<FieldType, VecType, Size> DrawLineWorkletType;
 
     UFLIC()
       :do_print(false){}
@@ -141,9 +141,9 @@ public:
 
     randomDispatcher.Invoke(indexArray, texArray);
     DrawLineWorkletType drawline(bounds, dim);
-    DoNormalize<FieldType, DeviceAdapter> donorm(dim);
-    DoSharpen<FieldType, DeviceAdapter> dosharp(dim);
-    DoJitter<FieldType, DeviceAdapter> dojitter(dim);
+    DoNormalize<FieldType> donorm(dim);
+    DoSharpen<FieldType> dosharp(dim);
+    DoJitter<FieldType> dojitter(dim);
 
     for (int loop = 0; loop < loop_cnt; loop++) {
         EvalType eval(t, Bounds(0, dim[0], 0, dim[1]), spacing);

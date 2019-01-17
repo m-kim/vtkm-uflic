@@ -75,7 +75,7 @@ public:
 	vtkm::IdComponent BitSize;
 };
 
-template<typename FieldType, typename DeviceAdapter>
+template<typename FieldType>
 class DoJitter
 {
 public:

@@ -49,7 +49,7 @@ public:
 
 };
 
-template<typename FieldType, typename DeviceAdapter>
+template<typename FieldType>
 class DoNormalize
 {
 public:

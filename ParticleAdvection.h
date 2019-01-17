@@ -33,7 +33,7 @@
 
 
 
-template <typename IntegratorType, typename FieldType, vtkm::IdComponent Size, typename DeviceAdapterTag>
+template <typename IntegratorType, typename FieldType, vtkm::IdComponent Size>
 class ParticleAdvectWorklet : public vtkm::worklet::WorkletMapField
 {
 public:
@@ -59,15 +59,14 @@ public:
 };
 
 
-template <typename IntegratorType, typename FieldType, vtkm::IdComponent Size, typename DeviceAdapterTag>
+template <typename IntegratorType, typename FieldType, vtkm::IdComponent Size>
 class ParticleAdvectionWorklet
 {
 public:
 
   typedef ParticleAdvectWorklet<IntegratorType,
                                 FieldType,
-                                Size,
-                                DeviceAdapterTag>
+                                Size>
     ParticleAdvectWorkletType;
 
   ParticleAdvectionWorklet(const IntegratorType& it)

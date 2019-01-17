@@ -8,7 +8,7 @@
 #include <vtkm/cont/DataSet.h>
 #include "Bounds2.h"
 
-template <typename FieldType, typename VecComponentType, vtkm::IdComponent Size, typename DeviceAdapterTag>
+template <typename FieldType, typename VecComponentType, vtkm::IdComponent Size>
 class DrawLine : public vtkm::worklet::WorkletMapField
 {
 public:
@@ -80,14 +80,13 @@ private:
 
 
 
-template < typename FieldType, typename VecComponentType, vtkm::IdComponent Size, typename DeviceAdapterTag>
+template < typename FieldType, typename VecComponentType, vtkm::IdComponent Size>
 class DrawLineWorklet
 {
 public:
 	typedef DrawLine< FieldType,
 										VecComponentType,
-                    Size,
-                    DeviceAdapterTag>
+                    Size>
     DrawLineWorkletType;
 
   DrawLineWorklet(Bounds bb,

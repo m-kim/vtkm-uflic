@@ -55,7 +55,7 @@ public:
   vtkm::Vec<vtkm::Float32,4> stencil;
 };
 
-template<typename FieldType, typename DeviceAdapter>
+template<typename FieldType>
 class DoLucasKanade
 {
 public:
@@ -75,8 +75,8 @@ public:
 
     LucasKanade LucasKanadeWorklet(dim, stencil);
     LucasKanadeWorkletDispatchType dispatch(LucasKanadeWorklet);
-    in.PrepareForInPlace(DeviceAdapter());
-    out.PrepareForInPlace(DeviceAdapter());
+    in.PrepareForInPlace( vtkm::cont::GetGlobalRuntimeDeviceTracker());
+    out.PrepareForInPlace( vtkm::cont::GetGlobalRuntimeDeviceTracker());
 
     dispatch.Invoke(vtkm::cont::ArrayHandleIndex(dim[0] * dim[1]),
                                     in, out);
