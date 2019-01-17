@@ -2,9 +2,11 @@
 #define READER_H
 #include <iostream>
 #include <sstream>
+#include "Evaluator.h"
 #include "Bounds2.h"
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/DataSetBuilderUniform.h>
+#include <vtkm/io/reader/VTKDataSetReader.h>
 
 template <typename VecType, vtkm::Id Size>
 class Reader
