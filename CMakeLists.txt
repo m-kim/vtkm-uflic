@@ -48,7 +48,7 @@ set(UFLIC_HDR
   Normalize.h
   Reader.h
   Sharpen.h
-  UFLIC.h
+  ParticleAdvection.h
 )
 
 
