@@ -49,57 +49,32 @@ public:
 
     vtkm::Float32 depth = newpoint[2];
 
-    if (depth > depthBuffer.Get(index))
-        return;
     depth = 0.5f * (depth) + 0.5f;
     vtkm::Vec<vtkm::Float32, 4> color;
     color[0] = static_cast<vtkm::Float32>(colorBufferIn.Get(index * 4 + 0));
     color[1] = static_cast<vtkm::Float32>(colorBufferIn.Get(index * 4 + 1));
     color[2] = static_cast<vtkm::Float32>(colorBufferIn.Get(index * 4 + 2));
     color[3] = static_cast<vtkm::Float32>(colorBufferIn.Get(index * 4 + 3));
+    // blend the mapped color with existing canvas color
+    vtkm::Vec<vtkm::Float32, 4> inColor = colorBuffer.Get(pixelIndex);
 
-    vtkm::Vec<vtkm::Float32, 4> vec_point = newpoint;
-    vec_point += color;
-    vec_point[3] = 1.f;
+    // if transparency exists, all alphas have been pre-multiplied
+    vtkm::Float32 alpha = (1.f - color[3]);
+    color[0] = color[0] + inColor[0] * alpha;
+    color[1] = color[1] + inColor[1] * alpha;
+    color[2] = color[2] + inColor[2] * alpha;
+    color[3] = inColor[3] * alpha + color[3];
 
-    vtkm::Vec<vtkm::Float32, 4> new_vec_point;
-    new_vec_point = vtkm::MatrixMultiply(this->ViewProjMat, vec_point);
-    vtkm::Vec<vtkm::Float32,3> fin_vec_point;
-    new_vec_point[0] = new_vec_point[0]/ new_vec_point[3];
-    new_vec_point[1] = new_vec_point[1]/ new_vec_point[3];
-    new_vec_point[2] = new_vec_point[2]/ new_vec_point[3];
-    new_vec_point = new_vec_point - newpoint;
-    new_vec_point[3] = 1.f;
-
-    fin_vec_point[0] = new_vec_point[0];
-    fin_vec_point[1] = new_vec_point[1];
-    fin_vec_point[2] = new_vec_point[2];
-    fin_vec_point = vtkm::Normal(fin_vec_point);
-
-    new_vec_point[0] = fin_vec_point[0];
-    new_vec_point[1] = fin_vec_point[1];
-    new_vec_point[2] = fin_vec_point[2];
-    new_vec_point[3] = 1.0f;
-//     // blend the mapped color with existing canvas color
-//     vtkm::Vec<vtkm::Float32, 4> inColor = colorBuffer.Get(pixelIndex);
-
-//     // if transparency exists, all alphas have been pre-multiplied
-//     vtkm::Float32 alpha = (1.f - color[3]);
-//     color[0] = color[0] + inColor[0] * alpha;
-//     color[1] = color[1] + inColor[1] * alpha;
-//     color[2] = color[2] + inColor[2] * alpha;
-//     color[3] = inColor[3] * alpha + color[3];
-
-//     // clamp
-//     for (vtkm::Int32 i = 0; i < 4; ++i)
-//     {
-//       color[i] = vtkm::Min(1.f, vtkm::Max(color[i], 0.f));
-//     }
-//     // The existing depth should already been feed into the ray mapper
-//     // so no color contribution will exist past the existing depth.
+    // // clamp
+    // for (vtkm::Int32 i = 0; i < 4; ++i)
+    // {
+    //   color[i] = vtkm::Min(1.f, vtkm::Max(color[i], 0.f));
+    // }
+    // // The existing depth should already been feed into the ray mapper
+    // // so no color contribution will exist past the existing depth.
 
     depthBuffer.Set(pixelIndex, depth);
-    colorBuffer.Set(pixelIndex, new_vec_point);
+    colorBuffer.Set(pixelIndex, color);
   }
 }; //class SurfaceConverter
 template <typename Precision>

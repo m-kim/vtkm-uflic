@@ -240,6 +240,28 @@ public:
       return new MapperUFLIC(*this);
     }
 
+    void SetActiveColorTable(const vtkm::cont::ColorTable& colorTable) override
+    {
+      constexpr vtkm::Float32 conversionToFloatSpace = (1.0f / 255.0f);
+      const int len = colorTable.GetNumberOfPoints();
+
+      vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::UInt8, 4>> temp;
+      colorTable.Sample(len, temp);
+
+      this->ColorMap.Allocate(len);
+      auto portal = this->ColorMap.GetPortalControl();
+      auto colorPortal = temp.GetPortalConstControl();
+      for (vtkm::Id i = 0; i < len; ++i)
+      {
+        auto color = colorPortal.Get(i);
+        vtkm::Vec<vtkm::Float32, 4> t(color[0] * conversionToFloatSpace,
+                                      color[1] * conversionToFloatSpace,
+                                      color[2] * conversionToFloatSpace,
+                                      color[3] * conversionToFloatSpace);
+        portal.Set(i, t);
+      }
+    }
+
 private:
   std::shared_ptr<InternalsType> Internals;
 

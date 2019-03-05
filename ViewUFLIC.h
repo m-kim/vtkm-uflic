@@ -1,5 +1,6 @@
 #ifndef VIEWUFLIC_H
 #define VIEWUFLIC_H
+#include <vtkm/rendering/View3D.h>
 
 class VTKM_RENDERING_EXPORT ViewUFLIC : public vtkm::rendering::View3D
 {
