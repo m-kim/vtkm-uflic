@@ -167,7 +167,6 @@ public:
   vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, pixelPos.GetNumberOfValues());
   vtkm::cont::ArrayCopy(zero, pixelPos);
 
-std::cout << "writetocanvas 1" << std::endl;
   myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
                             this->GetDepthBuffer(), this->GetColorBuffer());
 }
@@ -180,7 +179,6 @@ void WriteToCanvas(const vtkm::rendering::raytracing::Ray<vtkm::Float64>& rays,
   vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, pixelPos.GetNumberOfValues());
   vtkm::cont::ArrayCopy(zero, pixelPos);
 
-std::cout << "writetocanvas 2" << std::endl;
   myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
                             this->GetDepthBuffer(), this->GetColorBuffer());
 }
