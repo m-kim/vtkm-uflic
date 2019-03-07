@@ -124,6 +124,7 @@ public:
     };
     MapperUFLIC()
       : Internals(new InternalsType)
+      , stepsize(0.1)
     {
     }
 
@@ -242,23 +243,38 @@ public:
 
     void SetActiveColorTable(const vtkm::cont::ColorTable& colorTable) override
     {
-      constexpr vtkm::Float32 conversionToFloatSpace = (1.0f / 255.0f);
+//      constexpr vtkm::Float32 conversionToFloatSpace = (1.0f / 255.0f);
+//      const int len = colorTable.GetNumberOfPoints();
+
+//      vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::UInt8, 4>> temp;
+//      colorTable.Sample(len, temp);
+
+//      this->ColorMap.Allocate(len);
+//      auto portal = this->ColorMap.GetPortalControl();
+//      auto colorPortal = temp.GetPortalConstControl();
+//      for (vtkm::Id i = 0; i < len; ++i)
+//      {
+//        auto color = colorPortal.Get(i);
+//        vtkm::Vec<vtkm::Float32, 4> t(color[0] * conversionToFloatSpace,
+//                                      color[1] * conversionToFloatSpace,
+//                                      color[2] * conversionToFloatSpace,
+//                                      color[3] * conversionToFloatSpace);
+//        portal.Set(i, t);
+//      }
+
       const int len = colorTable.GetNumberOfPoints();
-
-      vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::UInt8, 4>> temp;
-      colorTable.Sample(len, temp);
-
       this->ColorMap.Allocate(len);
       auto portal = this->ColorMap.GetPortalControl();
-      auto colorPortal = temp.GetPortalConstControl();
-      for (vtkm::Id i = 0; i < len; ++i)
-      {
-        auto color = colorPortal.Get(i);
-        vtkm::Vec<vtkm::Float32, 4> t(color[0] * conversionToFloatSpace,
-                                      color[1] * conversionToFloatSpace,
-                                      color[2] * conversionToFloatSpace,
-                                      color[3] * conversionToFloatSpace);
-        portal.Set(i, t);
+      vtkm::Vec<double,4> color;
+
+      for (int i=0; i<len; i++){
+        colorTable.GetPoint(i, color);
+        vtkm::Vec<vtkm::Float32,4> outColor;
+        outColor[0] = color[1] * stepsize;
+        outColor[1] = color[2] * stepsize;
+        outColor[2] = color[3] * stepsize;
+        outColor[3] = stepsize;
+        portal.Set(i, outColor);
       }
     }
 
@@ -267,6 +283,7 @@ private:
 
   struct RenderFunctor;
 
+  vtkm::Float32 stepsize;
 };
 
 #endif

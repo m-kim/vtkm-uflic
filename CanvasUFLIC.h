@@ -4,6 +4,7 @@
 #include <vtkm/worklet/WorkletMapField.h>
 #include <vtkm/worklet/DispatcherMapField.h>
 #include <vtkm/rendering/raytracing/Ray.h>
+#include <vtkm/cont/ArrayCopy.h>
 
 namespace myinternal
 {
@@ -61,47 +62,54 @@ public:
     color[2] = static_cast<vtkm::Float32>(colorBufferIn.Get(index * 4 + 2));
     color[3] = static_cast<vtkm::Float32>(colorBufferIn.Get(index * 4 + 3));
     
-    
-    vtkm::Vec<vtkm::Float32, 4> inColor = colorBuffer.Get(pixelIndex);
+    if (vtkm::Magnitude(color) > 1e-6){
 
-    vtkm::Vec<vtkm::Float32, 4> newPos = inColor;
-    newPos[0] += intersection[0];
-    newPos[1] += intersection[1];
-    newPos[2] += intersection[2];
-    newPos[3] = 1.0;
+      vtkm::Vec<vtkm::Float32, 4> inColor = colorBuffer.Get(pixelIndex);
 
-    
-    auto newcolor = vtkm::MatrixMultiply(this->ViewProjMat, newPos);
-    newcolor[0] = newcolor[0] / newcolor[3];
-    newcolor[1] = newcolor[1] / newcolor[3];
-    newcolor[2] = newcolor[2] / newcolor[3];
-
-    newcolor[0] = 0.5f * newcolor[0] + 0.5f;
-    newcolor[1] = 0.5f * newcolor[1] + 0.5f;
-    newcolor[2] = 0.5f * newcolor[2] + 0.5f;
-    newcolor[0] *= width;
-    newcolor[1] *= height;
-    destPixel = vtkm::Round(newcolor[1]) * width + vtkm::Round(newcolor[0]);
+      vtkm::Vec<vtkm::Float32, 4> newPos = color;
+      newPos[0] += intersection[0];
+      newPos[1] += intersection[1];
+      newPos[2] += intersection[2];
+      newPos[3] = 1.0;
 
 
-    // blend the mapped color with existing canvas color
-    // if transparency exists, all alphas have been pre-multiplied
-    vtkm::Float32 alpha = (1.f - color[3]);
-    color[0] = color[0] + inColor[0] * alpha;
-    color[1] = color[1] + inColor[1] * alpha;
-    color[2] = color[2] + inColor[2] * alpha;
-    color[3] = inColor[3] * alpha + color[3];
+      auto newcolor = vtkm::MatrixMultiply(this->ViewProjMat, newPos);
+      newcolor[0] = newcolor[0] / newcolor[3];
+      newcolor[1] = newcolor[1] / newcolor[3];
+      newcolor[2] = newcolor[2] / newcolor[3];
 
-    // // clamp
-    // for (vtkm::Int32 i = 0; i < 4; ++i)
-    // {
-    //   color[i] = vtkm::Min(1.f, vtkm::Max(color[i], 0.f));
-    // }
-    // // The existing depth should already been feed into the ray mapper
-    // // so no color contribution will exist past the existing depth.
+      newcolor[0] = 0.5f * newcolor[0] + 0.5f;
+      newcolor[1] = 0.5f * newcolor[1] + 0.5f;
+      newcolor[2] = 0.5f * newcolor[2] + 0.5f;
+      newcolor[0] *= width;
+      newcolor[1] *= height;
+      newcolor[0] = vtkm::Max(0, newcolor[0]);
+      newcolor[0] = vtkm::Min(width, newcolor[0]);
+      newcolor[1] = vtkm::Max(0, newcolor[1]);
+      newcolor[1] = vtkm::Min(width, newcolor[1]);
 
-    depthBuffer.Set(pixelIndex, depth);
-    colorBuffer.Set(pixelIndex, color);
+      destPixel = vtkm::Round(newcolor[1]) * width + vtkm::Round(newcolor[0]);
+
+
+  //    // blend the mapped color with existing canvas color
+  //    // if transparency exists, all alphas have been pre-multiplied
+  //    vtkm::Float32 alpha = (1.f - color[3]);
+  //    color[0] = color[0] + inColor[0] * alpha;
+  //    color[1] = color[1] + inColor[1] * alpha;
+  //    color[2] = color[2] + inColor[2] * alpha;
+  //    color[3] = inColor[3] * alpha + color[3];
+
+      // // clamp
+      // for (vtkm::Int32 i = 0; i < 4; ++i)
+      // {
+      //   color[i] = vtkm::Min(1.f, vtkm::Max(color[i], 0.f));
+      // }
+      // // The existing depth should already been feed into the ray mapper
+      // // so no color contribution will exist past the existing depth.
+
+      depthBuffer.Set(pixelIndex, depth);
+      colorBuffer.Set(pixelIndex, color);
+    }
   }
 }; //class SurfaceConverter
 template <typename Precision>
@@ -114,7 +122,6 @@ VTKM_CONT void WriteToCanvas(const vtkm::rendering::raytracing::Ray<Precision>& 
                              vtkm::rendering::Canvas::DepthBufferType &depthBuffer,
                             vtkm::rendering::Canvas::ColorBufferType &colorBuffer)
 {
-    std::cout <<"My write to canvas!" << std::endl;
   vtkm::Matrix<vtkm::Float32, 4, 4> viewProjMat =
     vtkm::MatrixMultiply(camera.CreateProjectionMatrix(width, height),
                          camera.CreateViewMatrix());
@@ -132,26 +139,6 @@ VTKM_CONT void WriteToCanvas(const vtkm::rendering::raytracing::Ray<Precision>& 
   //Force the transfer so the vectors contain data from device
   colorBuffer.GetPortalControl().Get(0);
   depthBuffer.GetPortalControl().Get(0);
-  auto nextpos = pixelPos.GetPortalControl().Get(0);
-  auto pos = rays.PixelIdx.GetPortalConstControl().Get(0);
-  vtkm::Vec<vtkm::Float32,4> vec;
-  for (int i=0; i<pixelPos.GetNumberOfValues(); i++){
-    nextpos = pixelPos.GetPortalControl().Get(i);
-    pos = rays.PixelIdx.GetPortalConstControl().Get(i);
-    if (nextpos != pos){
-      std::cout << pos << nextpos << std::endl;
-      break;
-    }
-
-  }
-  std::cout<< "pixel pos " << pos << " " << pos / width << " " << (pos % width) << std::endl;
-  std::cout<< "next pixel pos " << nextpos << " " << nextpos / width << " " << (nextpos % width) << std::endl;
-
-  vec[0] = colors.GetPortalConstControl().Get(pos*4);
-  vec[1] = colors.GetPortalConstControl().Get(pos*4+1);
-  vec[2] = colors.GetPortalConstControl().Get(pos*4+2);
-  vec[3] = colors.GetPortalConstControl().Get(pos*4+3);
-std::cout << vec << std::endl;
 }
 } // namespace internal
 
@@ -163,7 +150,6 @@ public:
   CanvasUFLIC(vtkm::Id width = 1024, vtkm::Id height = 1024)
   : vtkm::rendering::Canvas(width,height)
   {
-    std::cout <<"CanvasUFLIC" << std::endl;
   }
 
   ~CanvasUFLIC(){}
