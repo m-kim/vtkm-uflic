@@ -6,7 +6,6 @@
 #include <vtkm/cont/Field.h>
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/DataSet.h>
-#include "Bounds2.h"
 
 template <typename FieldType, typename VecComponentType, vtkm::IdComponent Size>
 class DrawLine : public vtkm::worklet::WorkletMapField
@@ -14,9 +13,9 @@ class DrawLine : public vtkm::worklet::WorkletMapField
 public:
   typedef vtkm::Vec<VecComponentType, Size> VecType;
 
-  DrawLine( Bounds &bb,
+  DrawLine(
         vtkm::Id2 d)
-    : bounds(bb),
+    :
       dim(d)
   {
 
@@ -27,26 +26,27 @@ public:
   {
     return pos[0] < 0 || pos[0] >= dim[0] || pos[1] < 0 || pos[1] >= dim[1] || pos[0] != pos[0] || pos[1] != pos[1];
   }
-#if 1
-  typedef void ControlSignature(AtomicArrayInOut<>,
+  typedef void ControlSignature(
+                                FieldIn<>,
+                                FieldIn<>,
+#if 0
+                                AtomicArrayInOut<>,
                                 AtomicArrayInOut<>,
 #else
-	typedef void ControlSignature(WholeArrayInOut<>,
-																WholeArrayInOut<>,
+                                WholeArrayInOut<>,
+                                WholeArrayInOut<>,
 #endif
-																FieldIn<>,
-                                FieldIn<>,
-                                FieldIn<>);
+                                WholeArrayInOut<>);
   typedef void ExecutionSignature(_1, _2, _3, _4, _5);
 
   template<typename AtomicArrayType>
   VTKM_EXEC
-  void operator()(const AtomicArrayType &canvas,
-                  const AtomicArrayType &omega,
+  void operator()(
                   const VecType& p1,
                   const VecType& p2,
-                  FieldType val) const {
-    //if (bounds.Contains(p1) && bounds.Contains(p2)) {
+                  const AtomicArrayType &canvas,
+                  const AtomicArrayType &omega,
+                  AtomicArrayType &val) const {
     if (!outside(p1) && !outside(p2)){
 
 			vtkm::Vec<VecComponentType, Size> p = p1;
@@ -60,11 +60,11 @@ public:
         for (int i = 0; i<N; i++) {
           if (!outside(vtkm::Round(p))) {
             vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
-  #if 1
+  #if 0
             canvas.Add(idx, val);//color(255,255,255);
             omega.Add(idx, 1);
   #else
-            canvas.Set(idx, val);//color(255,255,255);
+            canvas.Set(idx, val[idx]);//color(255,255,255);
             omega.Set(idx, 1);
   #endif
           }
@@ -74,7 +74,6 @@ public:
 		}
 	}
 private:
-  Bounds bounds;
   vtkm::Id2 dim;
 };
 
@@ -89,9 +88,9 @@ public:
                     Size>
     DrawLineWorkletType;
 
-  DrawLineWorklet(Bounds bb,
+  DrawLineWorklet(
                   vtkm::Id2 d)
-    : bounds(bb),
+    :
       dims(d)
   {
 
@@ -113,13 +112,13 @@ public:
 
     pl = _pl;
     pr = _pr;
-		canvas[0] = _canvas0;
-		canvas[1] = _canvas1;
-		omega = _omega;
+    canvas[0] = _canvas0;
+    canvas[1] = _canvas1;
+    omega = _omega;
 
-		//canvas[0].PrepareForInPlace(DeviceAdapterTag());
-		//canvas[1].PrepareForInPlace(DeviceAdapterTag());
-		//omega.PrepareForInPlace(DeviceAdapterTag());
+    //canvas[0].PrepareForInPlace(DeviceAdapterTag());
+    //canvas[1].PrepareForInPlace(DeviceAdapterTag());
+    //omega.PrepareForInPlace(DeviceAdapterTag());
     run();
   }
 
@@ -131,15 +130,14 @@ private:
     typedef typename vtkm::worklet::DispatcherMapField<DrawLineWorkletType>
       DrawLineWorkletDispatchType;
 
-    DrawLineWorkletType drawLineWorklet(bounds, dims);
+    DrawLineWorkletType drawLineWorklet(dims);
     DrawLineWorkletDispatchType drawLineWorkletDispatch(drawLineWorklet);
-    drawLineWorkletDispatch.Invoke(canvas[1], omega, pl, pr, canvas[0]);
+    drawLineWorkletDispatch.Invoke(pl, pr,canvas[1], omega, canvas[0]);
   }
 
 
   vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>> pl, pr;
 
-  Bounds bounds;
   vtkm::Id2 dims;
   vtkm::Id maxSteps;
   vtkm::Id ParticlesPerRound;
