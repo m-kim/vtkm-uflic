@@ -140,7 +140,7 @@ public:
       texArray.Allocate(dim[0] * dim[1]);
 
       randomDispatcher.Invoke(indexArray, texArray);
-      DrawLineWorkletType drawline(bounds, dim);
+      DrawLineWorkletType drawline(dim);
       DoNormalize<FieldType> donorm(dim);
       DoSharpen<FieldType> dosharp(dim);
       DoJitter<FieldType> dojitter(dim);
@@ -211,7 +211,7 @@ public:
 
     }
     template<typename VecComponentType>
-    void saveAs(std::string fileName,
+    static void saveAs(std::string fileName,
                 vtkm::cont::ArrayHandle<VecComponentType > canvasArray,
                 vtkm::Id Width, vtkm::Id Height) 
     {

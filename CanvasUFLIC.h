@@ -31,7 +31,7 @@ public:
             typename DepthBufferPortalType,
             typename ColorBufferPortalType>
   VTKM_EXEC void operator()(const vtkm::Id& pixelIndex,
-                            vtkm::Id &destPixel,
+                            vtkm::Vec<vtkm::Float32,2> &destPixel,
                             ColorPortalType& colorBufferIn,
                             const Precision& inDepth,
                             const vtkm::Vec<Precision, 3>& origin,
@@ -88,7 +88,8 @@ public:
       newcolor[1] = vtkm::Max(0, newcolor[1]);
       newcolor[1] = vtkm::Min(width, newcolor[1]);
 
-      destPixel = vtkm::Round(newcolor[1]) * width + vtkm::Round(newcolor[0]);
+      destPixel[0] = vtkm::Round(newcolor[0]);
+      destPixel[1] = vtkm::Round(newcolor[1]);
 
 
   //    // blend the mapped color with existing canvas color
@@ -116,7 +117,7 @@ template <typename Precision>
 VTKM_CONT void WriteToCanvas(const vtkm::rendering::raytracing::Ray<Precision>& rays,
                              const vtkm::cont::ArrayHandle<Precision>& colors,
                              const vtkm::rendering::Camera& camera,
-                             vtkm::cont::ArrayHandle<vtkm::Id> &pixelPos,
+                             vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32,2>> &pixelPos,
                              vtkm::Id width,
                              vtkm::Id height,
                              vtkm::rendering::Canvas::DepthBufferType &depthBuffer,
@@ -148,7 +149,8 @@ public:
   using DepthBufferType = vtkm::cont::ArrayHandle<vtkm::Float32>;
 
   CanvasUFLIC(vtkm::Id width = 1024, vtkm::Id height = 1024)
-  : vtkm::rendering::Canvas(width,height)
+  : vtkm::rendering::Canvas(width,height),
+    iter_cnt(1)
   {
   }
 
@@ -169,21 +171,34 @@ public:
 
   myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
                             this->GetDepthBuffer(), this->GetColorBuffer());
+
+  pixelPrePos.Allocate(rays.PixelIdx.GetNumberOfValues());
+  for (int i=0; i < rays.PixelIdx.GetNumberOfValues(); i++){
+    vtkm::Id id = rays.PixelIdx.GetPortalConstControl().Get(i);
+    vtkm::Vec<vtkm::Float32,2> px;
+    px[0] = id / this->GetWidth();
+    px[1] = id % this->GetWidth();
+    pixelPrePos.GetPortalControl().Set(i, px);
+  }
+
+  pixelIdx = rays.PixelIdx;
 }
 
-void WriteToCanvas(const vtkm::rendering::raytracing::Ray<vtkm::Float64>& rays,
-                                    const vtkm::cont::ArrayHandle<vtkm::Float64>& colors,
-                                    const vtkm::rendering::Camera& camera)
-{
-  pixelPos.Allocate(rays.PixelIdx.GetNumberOfValues());
-  vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, pixelPos.GetNumberOfValues());
-  vtkm::cont::ArrayCopy(zero, pixelPos);
+//void WriteToCanvas(const vtkm::rendering::raytracing::Ray<vtkm::Float64>& rays,
+//                                    const vtkm::cont::ArrayHandle<vtkm::Float64>& colors,
+//                                    const vtkm::rendering::Camera& camera)
+//{
+//  pixelPos.Allocate(rays.PixelIdx.GetNumberOfValues());
+//  vtkm::cont::ArrayHandleConstant<vtkm::Vec<vtkm::Int32,2>> zero(0, pixelPos.GetNumberOfValues());
+//  vtkm::cont::ArrayCopy(zero, pixelPos);
 
-  myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
-                            this->GetDepthBuffer(), this->GetColorBuffer());
-}
+//  myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
+//                            this->GetDepthBuffer(), this->GetColorBuffer());
+//}
 
-vtkm::cont::ArrayHandle<vtkm::Id> pixelPos;
+vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32,2>> pixelPos, pixelPrePos;
+vtkm::cont::ArrayHandle<vtkm::Id> pixelIdx;
+int iter_cnt;
 
 }; // class CanvasRayTracer
 
