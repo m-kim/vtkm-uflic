@@ -14,10 +14,10 @@
 
 bool do_print = false;
 
-template< typename VectorField>
+template< typename VecFld>
 vtkm::cont::ArrayHandle<vtkm::Float32> runUFLIC(const vtkm::Id2 &dim,
-                                      std::vector<VectorField> &sl,
-                                      std::vector<VectorField> &sr,
+                                      std::vector<VecFld> &sl,
+                                      std::vector<VecFld> &sr,
                                       int ttl = 1,
                                       int loop_cnt = 1
                                       )
