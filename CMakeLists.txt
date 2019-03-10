@@ -30,7 +30,7 @@ find_package(VTKm REQUIRED
 
 
 set(UFLIC_SRC
-  main.cpp
+  screenspace.cpp
 )
 set(UFLIC_HDR
     DeviceAdapterAlgorithmCuda.h
@@ -53,8 +53,8 @@ set(UFLIC_HDR
 
 
 add_executable(UFLIC_rendering_Serial ${UFLIC_SRC} ${UFLIC_HDR})
-target_include_directories(UFLIC_rendering_Serial PRIVATE vtkm_cont)
-target_link_libraries(UFLIC_rendering_Serial vtkm_cont )
+#target_include_directories(UFLIC_rendering_Serial PRIVATE vtkm_cont )
+target_link_libraries(UFLIC_rendering_Serial vtkm_cont vtkm_rendering )
 target_compile_options(UFLIC_rendering_Serial PRIVATE ${VTKm_COMPILE_OPTIONS})
 target_compile_definitions(UFLIC_rendering_Serial PRIVATE
                        "VTKM_DEVICE_ADAPTER=VTKM_DEVICE_ADAPTER_SERIAL")
@@ -89,8 +89,8 @@ endif()
 
 if(VTKm_ENABLE_OPENMP)
     add_executable(UFLIC_rendering_OpenMP ${UFLIC_SRC} ${UFLIC_HDR})
-    target_include_directories(UFLIC_rendering_OpenMP PRIVATE vtkm_cont)
-    target_link_libraries(UFLIC_rendering_OpenMP PRIVATE vtkm_cont)
+    #    target_include_directories(UFLIC_rendering_OpenMP PRIVATE vtkm_cont)
+    target_link_libraries(UFLIC_rendering_OpenMP PRIVATE vtkm_cont vtkm_rendering)
     target_compile_options(UFLIC_rendering_OpenMP PRIVATE ${VTKm_COMPILE_OPTIONS})
     target_compile_definitions(UFLIC_rendering_OpenMP PRIVATE "VTKM_DEVICE_ADAPTER=VTKM_DEVICE_ADAPTER_OPENMP")
 

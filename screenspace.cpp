@@ -15,7 +15,7 @@
 bool do_print = false;
 
 template< typename VectorField>
-vtkm::cont::ArrayHandle<int> runUFLIC(const vtkm::Id2 &dim,
+vtkm::cont::ArrayHandle<vtkm::Float32> runUFLIC(const vtkm::Id2 &dim,
                                       std::vector<VectorField> &sl,
                                       std::vector<VectorField> &sr,
                                       int ttl = 1,
@@ -75,6 +75,8 @@ vtkm::cont::ArrayHandle<int> runUFLIC(const vtkm::Id2 &dim,
       dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
 
     }
+
+    return propFieldArray[0];
 }
 
 inline void SetCamera(std::unique_ptr<vtkm::rendering::Camera>& camera,
