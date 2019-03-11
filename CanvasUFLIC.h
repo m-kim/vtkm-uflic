@@ -86,7 +86,7 @@ public:
       newcolor[0] = vtkm::Max(0, newcolor[0]);
       newcolor[0] = vtkm::Min(width, newcolor[0]);
       newcolor[1] = vtkm::Max(0, newcolor[1]);
-      newcolor[1] = vtkm::Min(width, newcolor[1]);
+      newcolor[1] = vtkm::Min(height, newcolor[1]);
 
       destPixel[0] = vtkm::Round(newcolor[0]);
       destPixel[1] = vtkm::Round(newcolor[1]);
@@ -110,6 +110,18 @@ public:
 
       depthBuffer.Set(pixelIndex, depth);
       colorBuffer.Set(pixelIndex, color);
+    }
+    else{
+      colorBuffer.Set(pixelIndex, vtkm::Vec<vtkm::Float32,4>(0,0,0,0));
+      vtkm::Vec<vtkm::Float32, 2> pxpos(pixelIndex/width, pixelIndex % width);
+      pxpos[0] = vtkm::Max(0, pxpos[0]);
+      pxpos[0] = vtkm::Min(width, pxpos[0]);
+      pxpos[1] = vtkm::Max(0, pxpos[1]);
+      pxpos[1] = vtkm::Min(height, pxpos[1]);
+
+      destPixel[0] = vtkm::Round(pxpos[0]);
+      destPixel[1] = vtkm::Round(pxpos[1]);
+
     }
   }
 }; //class SurfaceConverter
@@ -181,7 +193,6 @@ public:
     pixelPrePos.GetPortalControl().Set(i, px);
   }
 
-  pixelIdx = rays.PixelIdx;
 }
 
 //void WriteToCanvas(const vtkm::rendering::raytracing::Ray<vtkm::Float64>& rays,
@@ -197,7 +208,6 @@ public:
 //}
 
 vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32,2>> pixelPos, pixelPrePos;
-vtkm::cont::ArrayHandle<vtkm::Id> pixelIdx;
 int iter_cnt;
 
 }; // class CanvasRayTracer
