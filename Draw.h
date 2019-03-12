@@ -37,7 +37,7 @@ public:
                                 WholeArrayInOut<>,
 #endif
                                 WholeArrayInOut<>);
-  typedef void ExecutionSignature(_1, _2, _3, _4, _5);
+  typedef void ExecutionSignature(_1, _2, _3, _4, _5, WorkIndex);
 
   template<typename AtomicArrayType>
   VTKM_EXEC
@@ -46,7 +46,8 @@ public:
                   const VecType& p2,
                   AtomicArrayType &canvas,
                   AtomicArrayType &omega,
-                  const AtomicArrayType &val) const {
+                  const AtomicArrayType &valarray,
+                  const vtkm::Id &widx) const {
     if (!outside(p1) && !outside(p2)){
 
 			vtkm::Vec<VecComponentType, Size> p = p1;
@@ -54,17 +55,17 @@ public:
       if (vtkm::Magnitude(d) > 1e-6){
         float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
         if (N > 0) {
-
+          auto val = valarray[widx];
           const vtkm::Vec<VecComponentType, Size> s(d[0] / N, d[1] / N);
 
           for (int i = 0; i<N; i++) {
             if (!outside(vtkm::Round(p))) {
-              vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
+              const vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
     #if 0
               canvas.Add(idx, val);//color(255,255,255);
               omega.Add(idx, 1);
     #else
-              canvas.Set(idx, val[idx]);//color(255,255,255);
+              canvas.Set(idx, val);//color(255,255,255);
               omega.Set(idx, 1);
     #endif
             }
@@ -76,7 +77,7 @@ public:
     }
 	}
 private:
-  vtkm::Id2 dim;
+  const vtkm::Id2 dim;
 };
 
 
