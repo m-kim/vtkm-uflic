@@ -119,8 +119,8 @@ public:
       pxpos[1] = vtkm::Max(0, pxpos[1]);
       pxpos[1] = vtkm::Min(height, pxpos[1]);
 
-      destPixel[0] = vtkm::Round(pxpos[0]);
-      destPixel[1] = vtkm::Round(pxpos[1]);
+      destPixel[1] = vtkm::Round(pxpos[0]);
+      destPixel[0] = vtkm::Round(pxpos[1]);
 
     }
   }
@@ -188,8 +188,8 @@ public:
   for (int i=0; i < rays.PixelIdx.GetNumberOfValues(); i++){
     vtkm::Id id = rays.PixelIdx.GetPortalConstControl().Get(i);
     vtkm::Vec<vtkm::Float32,2> px;
-    px[0] = id / this->GetWidth();
-    px[1] = id % this->GetWidth();
+    px[0] = id % this->GetWidth();
+    px[1] = id / this->GetWidth();
     pixelPrePos.GetPortalControl().Set(i, px);
   }
 
