@@ -9,74 +9,20 @@
 #include "MapperUFLIC.h"
 #include "ViewUFLIC.h"
 #include "CanvasUFLIC.h"
-#include "UFLIC.h"
+#include "ScreenSpaceLIC.h"
 #include "Draw.h"
 
-bool do_print = false;
+bool do_print = true;
 
 template< typename VecFld>
-vtkm::cont::ArrayHandle<vtkm::Float32> runUFLIC(const vtkm::Id2 &dim,
+vtkm::cont::ArrayHandle<vtkm::Int32> draw(const vtkm::Id2 &dim,
                                       std::vector<VecFld> &sl,
                                       std::vector<VecFld> &sr,
-                                      int ttl = 1,
                                       int loop_cnt = 1
                                       )
 {
-    const int Size = 2;
-    using VecType = vtkm::Float32;
-    using FieldType = vtkm::Float32;
-    using ArrayType = vtkm::cont::ArrayHandle<FieldType>;
-
-
-    std::vector<ArrayType> canvasArray;
-    ArrayType propFieldArray[2], omegaArray, texArray;
-
-    vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, dim[0]*dim[1]);
-
-    propFieldArray[0].Allocate(dim[0] * dim[1]);
-    propFieldArray[1].Allocate(dim[0] * dim[1]);
-    omegaArray.Allocate(dim[0] * dim[1]);
-    texArray.Allocate(dim[0] * dim[1]);
-
-    canvasArray.resize(ttl);
-    for (int i = 0; i < ttl; i++) {
-      canvasArray[i].Allocate(dim[0] * dim[1]);
-    }
-
-    for (int i=0; i<texArray.GetNumberOfValues(); i++){
-      texArray.GetPortalControl().Set(i,rand()%255);
-    }
-
-    DoNormalize<FieldType> donorm(dim);
-    DoSharpen<FieldType> dosharp(dim);
-    DoJitter<FieldType> dojitter(dim);
-    DrawLineWorklet<FieldType, VecType, Size>  drawline(dim);
-
-    for (int loop = 0; loop < loop_cnt; loop++){
-      for (int i=0; i<canvasArray[loop%ttl].GetNumberOfValues(); i++){
-        canvasArray[loop%ttl].GetPortalControl().Set(i,rand()%255);
-      }
-      vtkm::cont::ArrayCopy(zero, propFieldArray[0]);
-      vtkm::cont::ArrayCopy(zero, propFieldArray[1]);
-      vtkm::cont::ArrayCopy(zero, omegaArray);
-      for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
-        drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
-      }
-
-      donorm.Run(propFieldArray[0], omegaArray, propFieldArray[1]);
-      if (do_print){
-        std::stringstream fn;
-        fn << "uflic-" << loop << ".pnm";
-        //saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
-      }
-
-      //REUSE omegaArray as a temporary cache to sharpen
-      dosharp.Run(propFieldArray[1], omegaArray);
-      dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
-
-    }
-
-    return propFieldArray[0];
+    ScreenSpaceLIC<VectorField< vtkm::Float32,2>, vtkm::Float32> lic(loop_cnt);
+    return lic.draw(sl, sr);
 }
 
 inline void SetCamera(std::unique_ptr<vtkm::rendering::Camera>& camera,
@@ -176,14 +122,11 @@ int main(){
   Render(*view);
 
   std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32, 2>>> sl, sr;
-  std::vector<vtkm::cont::ArrayHandle<vtkm::Id>> pIdx;
+
   sr.push_back(canvas->pixelPos);
   sl.push_back(canvas->pixelPrePos);
-  sr[0].GetPortalConstControl().Get(0);
-  sl[0].GetPortalConstControl().Get(0);
-  pIdx.push_back(canvas->pixelIdx);
 
-  runUFLIC(dim, sl, sr);
+  draw(dim, sl, sr);
 
 return 0;
 }
