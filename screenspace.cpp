@@ -18,10 +18,11 @@ template< typename VecFld>
 vtkm::cont::ArrayHandle<vtkm::Int32> draw(const vtkm::Id2 &dim,
                                       std::vector<VecFld> &sl,
                                       std::vector<VecFld> &sr,
+                                      int ttl = 1,
                                       int loop_cnt = 1
                                       )
 {
-    ScreenSpaceLIC<VectorField< vtkm::Float32,2>, vtkm::Float32> lic(loop_cnt);
+    ScreenSpaceLIC<VectorField< vtkm::Float32,2>, vtkm::Float32> lic(dim, ttl, loop_cnt);
     return lic.draw(sl, sr);
 }
 
