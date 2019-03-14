@@ -10,12 +10,16 @@ public:
   using FieldType = typename UFLIC<EvalType, VecType, 2>::FieldType;
 
   ScreenSpaceLIC(const vtkm::Id2 &_dim
-                 ,int _ttl = 1,
-                 int _loop_cnt = 1) :
+                 ,vtkm::Float32 _s = 1.0
+                 ,int _ttl = 1
+                 ,int _loop_cnt = 1) :
     UFLIC<EvalType, VecType, 2>(_ttl),
-    dim(_dim),
-    loop_cnt(_loop_cnt)
+    dim(_dim)
+  ,stepsize(_s)
+  ,loop_cnt(_loop_cnt)
   {
+    std::cout << stepsize << std::endl;
+    this->do_print = true;
     this->propFieldArray[0].Allocate(dim[0] * dim[1]);
     this->propFieldArray[1].Allocate(dim[0] * dim[1]);
 
@@ -30,10 +34,11 @@ public:
   }
 
   template< typename VecFld>
-  vtkm::cont::ArrayHandle<FieldType> draw(
-                                        std::vector<VecFld> &sl,
-                                        std::vector<VecFld> &sr
-                                        )
+  void draw(
+            std::vector<VecFld> &sl,
+            std::vector<VecFld> &sr,
+            vtkm::cont::ArrayHandle<vtkm::Float32> &depth
+            )
   {
       vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, dim[0]*dim[1]);
 
@@ -46,7 +51,7 @@ public:
       DoNormalize<FieldType> donorm(dim);
       DoSharpen<FieldType> dosharp(dim);
       DoJitter<FieldType> dojitter(dim);
-      DrawLineWorklet<FieldType, VecType, 2>  drawline(dim);
+      DrawLineWorklet<FieldType, VecType, 2>  drawline(dim, stepsize);
 
       for (int loop = 0; loop < loop_cnt; loop++){
         for (int i=0; i<this->canvasArray[loop%this->ttl].GetNumberOfValues(); i++){
@@ -58,7 +63,7 @@ public:
         for (int i = 0; i < vtkm::Min(this->ttl, loop+1); i++) {
           drawline.Run(this->canvasArray[i],
                        this->propFieldArray[0],
-              this->omegaArray, sl[i], sr[i]);
+              this->omegaArray, depth, sl[i], sr[i]);
         }
 
         donorm.Run(this->propFieldArray[0],
@@ -79,9 +84,9 @@ public:
 
       }
 
-      return this->propFieldArray[0];
   }
 
+  vtkm::Float32 stepsize;
   vtkm::Id2 dim;
   int loop_cnt;
 };

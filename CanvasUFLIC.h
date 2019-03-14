@@ -121,6 +121,7 @@ public:
 
       destPixel[1] = vtkm::Round(pxpos[0]);
       destPixel[0] = vtkm::Round(pxpos[1]);
+      depthBuffer.Set(pixelIndex, -1.0);
 
     }
   }

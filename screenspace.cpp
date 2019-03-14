@@ -18,12 +18,14 @@ template< typename VecFld>
 vtkm::cont::ArrayHandle<vtkm::Int32> draw(const vtkm::Id2 &dim,
                                       std::vector<VecFld> &sl,
                                       std::vector<VecFld> &sr,
+                                      vtkm::cont::ArrayHandle<vtkm::Float32> &depth,
+                                          vtkm::Float32 stepsize = 1.0,
                                       int ttl = 1,
                                       int loop_cnt = 1
                                       )
 {
-    ScreenSpaceLIC<VectorField< vtkm::Float32,2>, vtkm::Float32> lic(dim, ttl, loop_cnt);
-    return lic.draw(sl, sr);
+    ScreenSpaceLIC<VectorField< vtkm::Float32,2>, vtkm::Float32> lic(dim, stepsize, ttl, loop_cnt);
+    return lic.draw(sl, sr, depth);
 }
 
 inline void SetCamera(std::unique_ptr<vtkm::rendering::Camera>& camera,
@@ -127,7 +129,7 @@ int main(){
   sr.push_back(canvas->pixelPos);
   sl.push_back(canvas->pixelPrePos);
 
-  draw(dim, sl, sr);
+  draw(dim, sl, sr, canvas->GetDepthBuffer(), 0.03);
 
 return 0;
 }

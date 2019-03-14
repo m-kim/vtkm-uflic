@@ -124,7 +124,6 @@ public:
     };
     MapperUFLIC()
       : Internals(new InternalsType)
-      , stepsize(0.1)
     {
     }
 
@@ -270,10 +269,10 @@ public:
       for (int i=0; i<len; i++){
         colorTable.GetPoint(i, color);
         vtkm::Vec<vtkm::Float32,4> outColor;
-        outColor[0] = color[1] * stepsize;
-        outColor[1] = color[2] * stepsize;
-        outColor[2] = color[3] * stepsize;
-        outColor[3] = stepsize;
+        outColor[0] = color[1];
+        outColor[1] = color[2];
+        outColor[2] = color[3];
+        outColor[3] = 1.0;
         portal.Set(i, outColor);
       }
     }
@@ -283,7 +282,6 @@ private:
 
   struct RenderFunctor;
 
-  vtkm::Float32 stepsize;
 };
 
 #endif
