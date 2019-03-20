@@ -124,6 +124,7 @@ public:
     };
     MapperUFLIC()
       : Internals(new InternalsType)
+      , stepsize(1.0)
     {
     }
 
@@ -202,7 +203,7 @@ public:
 
       timer.Reset();
       this->Internals->Canvas->WriteToCanvas(
-        this->Internals->Rays, this->Internals->Rays.Buffers.at(0).Buffer, camera);
+        this->Internals->Rays, this->Internals->Rays.Buffers.at(0).Buffer, camera, stepsize);
 
       if (this->Internals->CompositeBackground)
       {
@@ -225,6 +226,9 @@ public:
       this->Internals->Shade = on;
     }
 
+    void SetStepSize(vtkm::Float32 _s){
+      stepsize = _s;
+    }
     void StartScene() override
     {
       // Nothing needs to be done.
@@ -281,6 +285,7 @@ private:
   std::shared_ptr<InternalsType> Internals;
 
   struct RenderFunctor;
+  vtkm::Float32 stepsize;
 
 };
 

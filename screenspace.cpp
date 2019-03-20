@@ -15,7 +15,7 @@
 bool do_print = true;
 
 template< typename VecFld>
-vtkm::cont::ArrayHandle<vtkm::Int32> draw(const vtkm::Id2 &dim,
+void draw(const vtkm::Id2 &dim,
                                       std::vector<VecFld> &sl,
                                       std::vector<VecFld> &sr,
                                       vtkm::cont::ArrayHandle<vtkm::Float32> &depth,
@@ -25,7 +25,7 @@ vtkm::cont::ArrayHandle<vtkm::Int32> draw(const vtkm::Id2 &dim,
                                       )
 {
     ScreenSpaceLIC<VectorField< vtkm::Float32,2>, vtkm::Float32> lic(dim, stepsize, ttl, loop_cnt);
-    return lic.draw(sl, sr, depth);
+    lic.draw(sl, sr, depth);
 }
 
 inline void SetCamera(std::unique_ptr<vtkm::rendering::Camera>& camera,
@@ -114,7 +114,8 @@ int main(){
   view = std::unique_ptr<ViewUFLIC>(new ViewUFLIC(*scene, *mapper, *canvas, *camera, vtkm::rendering::Color(0,0,0,1), vtkm::rendering::Color(1,0,0,1)));
 
   mapper->SetShadingOn(false);
-  auto ds = readVTKDataSet("edelta-velocity.vtk");
+  mapper->SetStepSize(1000.0);
+  auto ds = readVTKDataSet("/mnt/d/Users/mark/Dropbox/Presentation/ice-train-vel.vtk");
   addField(ds);
   static std::string fieldNm = "pointvar";
 
@@ -129,7 +130,7 @@ int main(){
   sr.push_back(canvas->pixelPos);
   sl.push_back(canvas->pixelPrePos);
 
-  draw(dim, sl, sr, canvas->GetDepthBuffer(), 0.03);
+  draw(dim, sl, sr, canvas->GetDepthBuffer(), 10);
 
 return 0;
 }

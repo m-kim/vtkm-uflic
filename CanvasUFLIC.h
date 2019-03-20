@@ -12,14 +12,17 @@ class MySurfaceConverter : public vtkm::worklet::WorkletMapField
 {
   vtkm::Matrix<vtkm::Float32, 4, 4> ViewProjMat;
   vtkm::Id width, height;
+  const vtkm::Float32 stepsize;
 public:
   VTKM_CONT
   MySurfaceConverter(const vtkm::Matrix<vtkm::Float32, 4, 4> viewProjMat,
                     vtkm::Id w,
-                    vtkm::Id h)
+                    vtkm::Id h,
+                    vtkm::Float32 _s)
     : ViewProjMat(viewProjMat),
     width(w),
-    height(h)
+    height(h),
+    stepsize(_s)
   {
   }
 
@@ -66,10 +69,10 @@ public:
 
       vtkm::Vec<vtkm::Float32, 4> inColor = colorBuffer.Get(pixelIndex);
 
-      vtkm::Vec<vtkm::Float32, 4> newPos = color;
-      newPos[0] += intersection[0];
-      newPos[1] += intersection[1];
-      newPos[2] += intersection[2];
+      vtkm::Vec<vtkm::Float32, 4> newPos = color * stepsize;
+      newPos[0] = intersection[0] + newPos[0];
+      newPos[1] = intersection[1] + newPos[1];
+      newPos[2] = intersection[2] + newPos[2];
       newPos[3] = 1.0;
 
 
@@ -134,13 +137,14 @@ VTKM_CONT void WriteToCanvas(const vtkm::rendering::raytracing::Ray<Precision>& 
                              vtkm::Id width,
                              vtkm::Id height,
                              vtkm::rendering::Canvas::DepthBufferType &depthBuffer,
-                            vtkm::rendering::Canvas::ColorBufferType &colorBuffer)
+                            vtkm::rendering::Canvas::ColorBufferType &colorBuffer,
+                             const vtkm::Float32 stepsize)
 {
   vtkm::Matrix<vtkm::Float32, 4, 4> viewProjMat =
     vtkm::MatrixMultiply(camera.CreateProjectionMatrix(width, height),
                          camera.CreateViewMatrix());
 
-  vtkm::worklet::DispatcherMapField<MySurfaceConverter>(MySurfaceConverter(viewProjMat, width,height))
+  vtkm::worklet::DispatcherMapField<MySurfaceConverter>(MySurfaceConverter(viewProjMat, width,height, stepsize))
     .Invoke(rays.PixelIdx,
             pixelPos,
             colors,
@@ -176,14 +180,15 @@ public:
 
   void WriteToCanvas(const vtkm::rendering::raytracing::Ray<vtkm::Float32>& rays,
                                     const vtkm::cont::ArrayHandle<vtkm::Float32>& colors,
-                                    const vtkm::rendering::Camera& camera)
+                                    const vtkm::rendering::Camera& camera,
+                                    const vtkm::Float32 stepsize)
 {
   pixelPos.Allocate(rays.PixelIdx.GetNumberOfValues());
   vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, pixelPos.GetNumberOfValues());
   vtkm::cont::ArrayCopy(zero, pixelPos);
 
   myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
-                            this->GetDepthBuffer(), this->GetColorBuffer());
+                            this->GetDepthBuffer(), this->GetColorBuffer(), stepsize);
 
   pixelPrePos.Allocate(rays.PixelIdx.GetNumberOfValues());
   for (int i=0; i < rays.PixelIdx.GetNumberOfValues(); i++){
