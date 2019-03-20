@@ -69,8 +69,12 @@ public:
               canvas.Add(idx, val);//color(255,255,255);
               omega.Add(idx, 1);
     #else
-              canvas.Set(idx, val);//color(255,255,255);
-              omega.Set(idx, 1);
+              auto cnvs = canvas.Get(idx);
+              cnvs += val;
+              canvas.Set(idx, cnvs);//color(255,255,255);
+              auto newidx = omega.Get(idx);
+
+              omega.Set(idx, newidx + 1);
     #endif
             }
             p += s;
