@@ -115,6 +115,7 @@ public:
       vtkm::worklet::DispatcherMapField<ResetParticles<VecType, Size>> resetDispatcher(dim[0]);
       vtkm::worklet::DispatcherMapField<SetRandomArray> randomDispatcher(vtkm::Vec<vtkm::Int32, 2>(0, 255));
 
+      vtkm::cont::ArrayHandleConstant<vtkm::Int8> mask(1, dim[0]*dim[1]);
 
       vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), 1, dim[0]*dim[1]);
 
@@ -168,7 +169,7 @@ public:
 
           for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
           advect.Run(sl[i], sr[i], vecArray);
-          drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, sl[i], sr[i]);
+          drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, mask, sl[i], sr[i]);
           }
 
           sr.swap(sl);

@@ -31,7 +31,7 @@ public:
   typedef void ControlSignature(
                                 FieldIn<>,
                                 FieldIn<>,
-                                WholeArrayInOut<>,
+                                WholeArrayIn<>,
 #if 0
                                 AtomicArrayInOut<>,
                                 AtomicArrayInOut<>,
@@ -42,12 +42,12 @@ public:
                                 WholeArrayInOut<>);
   typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, WorkIndex);
 
-  template<typename AtomicArrayType, typename DepthArrayType>
+  template<typename AtomicArrayType, typename MaskArrayType>
   VTKM_EXEC
   void operator()(
                   const VecType& p1,
                   const VecType& p2,
-                  DepthArrayType &depth,
+                  MaskArrayType &mask,
                   AtomicArrayType &canvas,
                   AtomicArrayType &omega,
                   const AtomicArrayType &valarray,
@@ -63,7 +63,7 @@ public:
           const vtkm::Vec<VecComponentType, Size> s(d[0] / N, d[1] / N);
 
           vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
-          for (int i = 0; i<N && depth[idx] > 0; i++) {
+          for (int i = 0; i<N && mask[idx] > 0; i++) {
             if (!outside(vtkm::Round(p))) {
     #if 0
               canvas.Add(idx, val);//color(255,255,255);
@@ -103,7 +103,7 @@ public:
 
   DrawLineWorklet(
                   vtkm::Id2 d,
-      vtkm::Float32 _s)
+      vtkm::Float32 _s = 1.0)
     :
       dims(d)
     ,stepsize(_s)
@@ -112,13 +112,13 @@ public:
   }
 
 
-  template <typename PointStorage, typename FieldStorage>
+  template <typename PointStorage, typename FieldStorage, typename MaskArrayHandleType>
   VTKM_CONT
   void Run(
       vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas0,
 			vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas1,
       vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_omega,
-      vtkm::cont::ArrayHandle<vtkm::Float32> &_depth,
+      MaskArrayHandleType &_mask,
       const vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>, PointStorage>& _pl,
       const vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>, PointStorage>& _pr
     )
@@ -130,7 +130,7 @@ public:
 
     DrawLineWorkletType drawLineWorklet(dims, stepsize);
     DrawLineWorkletDispatchType drawLineWorkletDispatch(drawLineWorklet);
-    drawLineWorkletDispatch.Invoke(_pl, _pr, _depth, _canvas1, _omega, _canvas0);
+    drawLineWorkletDispatch.Invoke(_pl, _pr, _mask, _canvas1, _omega, _canvas0);
   }
 
   ~DrawLineWorklet() {}
