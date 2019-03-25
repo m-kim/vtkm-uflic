@@ -12,17 +12,14 @@ class MySurfaceConverter : public vtkm::worklet::WorkletMapField
 {
   vtkm::Matrix<vtkm::Float32, 4, 4> ViewProjMat;
   vtkm::Id width, height;
-  const vtkm::Float32 stepsize;
 public:
   VTKM_CONT
   MySurfaceConverter(const vtkm::Matrix<vtkm::Float32, 4, 4> viewProjMat,
                     vtkm::Id w,
-                    vtkm::Id h,
-                    vtkm::Float32 _s)
+                    vtkm::Id h)
     : ViewProjMat(viewProjMat),
     width(w),
-    height(h),
-    stepsize(_s)
+    height(h)
   {
   }
 
@@ -34,7 +31,7 @@ public:
             typename DepthBufferPortalType,
             typename ColorBufferPortalType>
   VTKM_EXEC void operator()(const vtkm::Id& pixelIndex,
-                            vtkm::Vec<vtkm::Float32,2> &destPixel,
+                            vtkm::Vec<vtkm::Float32,2> &vel,
                             ColorPortalType& colorBufferIn,
                             const Precision& inDepth,
                             const vtkm::Vec<Precision, 3>& origin,
@@ -69,7 +66,7 @@ public:
 
       vtkm::Vec<vtkm::Float32, 4> inColor = colorBuffer.Get(pixelIndex);
 
-      vtkm::Vec<vtkm::Float32, 4> newPos = color * stepsize;
+      vtkm::Vec<vtkm::Float32, 4> newPos = color;
       newPos[0] = intersection[0] + newPos[0];
       newPos[1] = intersection[1] + newPos[1];
       newPos[2] = intersection[2] + newPos[2];
@@ -91,9 +88,16 @@ public:
       newcolor[1] = vtkm::Max(0, newcolor[1]);
       newcolor[1] = vtkm::Min(height, newcolor[1]);
 
-      destPixel[0] = vtkm::Round(newcolor[0]);
-      destPixel[1] = vtkm::Round(newcolor[1]);
 
+      vtkm::Vec<vtkm::Float32, 2> pxpos(pixelIndex / width, pixelIndex % width);
+      pxpos[0] = vtkm::Max(0, pxpos[0]);
+      pxpos[0] = vtkm::Min(width, pxpos[0]);
+      pxpos[1] = vtkm::Max(0, pxpos[1]);
+      pxpos[1] = vtkm::Min(height, pxpos[1]);
+
+      vel[0] = newcolor[0] - pxpos[0];
+      vel[1] = newcolor[1] - pxpos[1];
+      vtkm::Normalize(vel);
 
   //    // blend the mapped color with existing canvas color
   //    // if transparency exists, all alphas have been pre-multiplied
@@ -116,14 +120,8 @@ public:
     }
     else{
       colorBuffer.Set(pixelIndex, vtkm::Vec<vtkm::Float32,4>(0,0,0,0));
-      vtkm::Vec<vtkm::Float32, 2> pxpos(pixelIndex/width, pixelIndex % width);
-      pxpos[0] = vtkm::Max(0, pxpos[0]);
-      pxpos[0] = vtkm::Min(width, pxpos[0]);
-      pxpos[1] = vtkm::Max(0, pxpos[1]);
-      pxpos[1] = vtkm::Min(height, pxpos[1]);
-
-      destPixel[1] = vtkm::Round(pxpos[0]);
-      destPixel[0] = vtkm::Round(pxpos[1]);
+      vel[0] = 0;
+      vel[1] = 0;
       depthBuffer.Set(pixelIndex, -1.0);
 
     }
@@ -137,14 +135,13 @@ VTKM_CONT void WriteToCanvas(const vtkm::rendering::raytracing::Ray<Precision>& 
                              vtkm::Id width,
                              vtkm::Id height,
                              vtkm::rendering::Canvas::DepthBufferType &depthBuffer,
-                            vtkm::rendering::Canvas::ColorBufferType &colorBuffer,
-                             const vtkm::Float32 stepsize)
+                            vtkm::rendering::Canvas::ColorBufferType &colorBuffer)
 {
   vtkm::Matrix<vtkm::Float32, 4, 4> viewProjMat =
     vtkm::MatrixMultiply(camera.CreateProjectionMatrix(width, height),
                          camera.CreateViewMatrix());
 
-  vtkm::worklet::DispatcherMapField<MySurfaceConverter>(MySurfaceConverter(viewProjMat, width,height, stepsize))
+  vtkm::worklet::DispatcherMapField<MySurfaceConverter>(MySurfaceConverter(viewProjMat, width,height))
     .Invoke(rays.PixelIdx,
             pixelPos,
             colors,
@@ -188,14 +185,17 @@ public:
   vtkm::cont::ArrayCopy(zero, pixelPos);
 
   myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
-                            this->GetDepthBuffer(), this->GetColorBuffer(), stepsize);
+                            this->GetDepthBuffer(), this->GetColorBuffer());
 
   pixelPrePos.Allocate(rays.PixelIdx.GetNumberOfValues());
   for (int i=0; i < rays.PixelIdx.GetNumberOfValues(); i++){
     vtkm::Id id = rays.PixelIdx.GetPortalConstControl().Get(i);
     vtkm::Vec<vtkm::Float32,2> px;
-    px[0] = id % this->GetWidth();
-    px[1] = id / this->GetWidth();
+    px[0] = id % this->GetWidth() + 0.5;
+    px[1] = id / this->GetWidth() + 0.5;
+
+    auto vel = pixelPos.GetPortalControl().Get(i);
+    pixelPos.GetPortalControl().Set(i, px + vel);
     pixelPrePos.GetPortalControl().Set(i, px);
   }
 

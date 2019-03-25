@@ -60,10 +60,10 @@ public:
         vtkm::cont::ArrayCopy(zero, this->propFieldArray[0]);
         vtkm::cont::ArrayCopy(zero, this->propFieldArray[1]);
         vtkm::cont::ArrayCopy(zero, this->omegaArray);
-        for (int i = 0; i < vtkm::Min(this->ttl, loop+1); i++) {
+        for (size_t i = 0; i < vtkm::Min(this->ttl, loop+1); i++) {
           drawline.Run(this->canvasArray[i],
                        this->propFieldArray[0],
-              this->omegaArray, depth, sl[i], sr[i]);
+              this->omegaArray, depth, sl[vtkm::Min(i, sl.size()-1)], sr[vtkm::Min(i, sr.size()-1)]);
         }
 
         donorm.Run(this->propFieldArray[0],
@@ -83,6 +83,10 @@ public:
                      this->canvasArray[(loop) % this->ttl]);
 
       }
+      this->result = this->propFieldArray[1];
+      std::stringstream fn;
+      fn << "uflic-final" << ".pnm";
+      this->saveAs(fn.str().c_str(), this->propFieldArray[1], dim[0], dim[1]);
 
   }
 
