@@ -78,7 +78,7 @@ public:
           advect.Run(sl[i], sr[i], vecArray);
           drawline.Run(this->canvasArray[i],
                        this->propFieldArray[0],
-              this->omegaArray, depth, sl[i], sr[i]);
+              this->omegaArray, depth,indexArray, sl[i], sr[i]);
         }
         sr.swap(sl);
 

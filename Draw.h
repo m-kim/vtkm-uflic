@@ -31,6 +31,7 @@ public:
   typedef void ControlSignature(
                                 FieldIn<>,
                                 FieldIn<>,
+                                FieldIn<>,
                                 WholeArrayIn<>,
 #if 0
                                 AtomicArrayInOut<>,
@@ -39,19 +40,20 @@ public:
                                 WholeArrayInOut<>,
                                 WholeArrayInOut<>,
 #endif
-                                WholeArrayInOut<>);
-  typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, WorkIndex);
 
-  template<typename AtomicArrayType, typename MaskArrayType>
+                                WholeArrayInOut<>);
+  typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, _7);
+
+  template<typename AtomicArrayType, typename MaskArrayType, typename IdxType>
   VTKM_EXEC
   void operator()(
                   const VecType& p1,
                   const VecType& p2,
+                  const IdxType &idxArray,
                   MaskArrayType &mask,
                   AtomicArrayType &canvas,
                   AtomicArrayType &omega,
-                  const AtomicArrayType &valarray,
-                  const vtkm::Id &widx) const {
+                  const AtomicArrayType &valarray) const {
     if (!outside(p1) && !outside(p2)){
 
 			vtkm::Vec<VecComponentType, Size> p = p1;
@@ -59,7 +61,7 @@ public:
       if (vtkm::Magnitude(d) > 1e-6){
         float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
         if (N > 0) {
-          auto val = valarray[widx];
+          auto val = valarray[idxArray];
           const vtkm::Vec<VecComponentType, Size> s(d[0] / N, d[1] / N);
 
           vtkm::Id idx = static_cast<vtkm::Id>(vtkm::Round(p[1]))*dim[0] + static_cast<vtkm::Id>(vtkm::Round(p[0]));
@@ -112,13 +114,17 @@ public:
   }
 
 
-  template <typename PointStorage, typename FieldStorage, typename MaskArrayHandleType>
+  template <typename PointStorage,
+            typename FieldStorage,
+            typename MaskArrayHandleType,
+            typename IdxArrayType>
   VTKM_CONT
   void Run(
       vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas0,
 			vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_canvas1,
       vtkm::cont::ArrayHandle<FieldType, FieldStorage> &_omega,
       MaskArrayHandleType &_mask,
+      IdxArrayType &_idxArray,
       const vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>, PointStorage>& _pl,
       const vtkm::cont::ArrayHandle<vtkm::Vec<VecComponentType, Size>, PointStorage>& _pr
     )
@@ -130,7 +136,7 @@ public:
 
     DrawLineWorkletType drawLineWorklet(dims, stepsize);
     DrawLineWorkletDispatchType drawLineWorkletDispatch(drawLineWorklet);
-    drawLineWorkletDispatch.Invoke(_pl, _pr, _mask, _canvas1, _omega, _canvas0);
+    drawLineWorkletDispatch.Invoke(_pl, _pr, _idxArray, _mask, _canvas1, _omega, _canvas0);
   }
 
   ~DrawLineWorklet() {}

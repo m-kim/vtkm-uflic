@@ -89,7 +89,7 @@ public:
       newcolor[1] = vtkm::Min(height, newcolor[1]);
 
 
-      vtkm::Vec<vtkm::Float32, 2> pxpos(pixelIndex / width, pixelIndex % width);
+      vtkm::Vec<vtkm::Float32, 2> pxpos(pixelIndex % width, pixelIndex / width);
       pxpos[0] = vtkm::Max(0, pxpos[0]);
       pxpos[0] = vtkm::Min(width, pxpos[0]);
       pxpos[1] = vtkm::Max(0, pxpos[1]);
