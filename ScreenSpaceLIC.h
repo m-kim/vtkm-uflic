@@ -8,6 +8,8 @@ class ScreenSpaceLIC : public UFLIC<EvalType, VecType, 2>
 public:
 
   using FieldType = typename UFLIC<EvalType, VecType, 2>::FieldType;
+  typedef EulerIntegrator<EvalType, VecType, 2> IntegratorType;
+  typedef ParticleAdvectionWorklet<IntegratorType, VecType, 2> ParticleAdvectionWorkletType;
 
   ScreenSpaceLIC(const vtkm::Id2 &_dim
                  ,vtkm::Float32 _s = 1.0
@@ -33,15 +35,23 @@ public:
 
   }
 
-  template< typename VecFld>
+  template< typename VecFld, typename VecIdx>
   void draw(
-            std::vector<VecFld> &sl,
-            std::vector<VecFld> &sr,
+          VecFld &vecArray,
+          VecIdx &indexArray,
             vtkm::cont::ArrayHandle<vtkm::Float32> &depth
             )
   {
       vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, dim[0]*dim[1]);
 
+      std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<VecType, 2>>> sl(this->ttl), sr(this->ttl);
+      vtkm::worklet::DispatcherMapField<ResetParticles<VecType, 2>> resetDispatcher(dim[0]);
+      for (int i = 0; i < this->ttl; i++) {
+          sl[i].Allocate(indexArray.GetNumberOfValues());
+          resetDispatcher.Invoke(indexArray, sl[i]);
+          sr[i].Allocate(indexArray.GetNumberOfValues());
+          resetDispatcher.Invoke(indexArray, sr[i]);
+      }
 
 
       for (int i=0; i<this->texArray.GetNumberOfValues(); i++){
@@ -52,8 +62,12 @@ public:
       DoSharpen<FieldType> dosharp(dim);
       DoJitter<FieldType> dojitter(dim);
       DrawLineWorklet<FieldType, VecType, 2>  drawline(dim, stepsize);
-
+      auto  spacing = vtkm::Vec<VecType,2>(1,1);
       for (int loop = 0; loop < loop_cnt; loop++){
+        EvalType eval(0, Bounds(0, dim[0], 0, dim[1]), spacing);
+        IntegratorType integrator(eval, 3.0);
+
+        ParticleAdvectionWorkletType advect(integrator);
         for (int i=0; i<this->canvasArray[loop%this->ttl].GetNumberOfValues(); i++){
           this->canvasArray[loop%this->ttl].GetPortalControl().Set(i,rand()%255);
         }
@@ -61,10 +75,12 @@ public:
         vtkm::cont::ArrayCopy(zero, this->propFieldArray[1]);
         vtkm::cont::ArrayCopy(zero, this->omegaArray);
         for (size_t i = 0; i < vtkm::Min(this->ttl, loop+1); i++) {
+          advect.Run(sl[i], sr[i], vecArray);
           drawline.Run(this->canvasArray[i],
                        this->propFieldArray[0],
-              this->omegaArray, depth, sl[vtkm::Min(i, sl.size()-1)], sr[vtkm::Min(i, sr.size()-1)]);
+              this->omegaArray, depth, sl[i], sr[i]);
         }
+        sr.swap(sl);
 
         donorm.Run(this->propFieldArray[0],
             this->omegaArray,

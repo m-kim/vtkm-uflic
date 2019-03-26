@@ -187,16 +187,19 @@ public:
   myinternal::WriteToCanvas(rays, colors, camera, pixelPos, this->GetWidth(), this->GetHeight(),
                             this->GetDepthBuffer(), this->GetColorBuffer());
 
-  pixelPrePos.Allocate(rays.PixelIdx.GetNumberOfValues());
+  pixelVel.Allocate(this->GetWidth() * this->GetHeight());
+  vtkm::cont::ArrayCopy(
+              vtkm::cont::ArrayHandleConstant<vtkm::Vec<vtkm::Float32,2>>(vtkm::Vec<vtkm::Float32,2>(0), pixelVel.GetNumberOfValues()),
+              pixelVel);
+
+  pixelIdx.Allocate(pixelPos.GetNumberOfValues());
+  vtkm::cont::ArrayCopy(rays.PixelIdx, pixelIdx);
+
   for (int i=0; i < rays.PixelIdx.GetNumberOfValues(); i++){
     vtkm::Id id = rays.PixelIdx.GetPortalConstControl().Get(i);
-    vtkm::Vec<vtkm::Float32,2> px;
-    px[0] = id % this->GetWidth() + 0.5;
-    px[1] = id / this->GetWidth() + 0.5;
 
     auto vel = pixelPos.GetPortalControl().Get(i);
-    pixelPos.GetPortalControl().Set(i, px + vel);
-    pixelPrePos.GetPortalControl().Set(i, px);
+    pixelVel.GetPortalControl().Set(id, vel);
   }
 
 }
@@ -213,7 +216,8 @@ public:
 //                            this->GetDepthBuffer(), this->GetColorBuffer());
 //}
 
-vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32,2>> pixelPos, pixelPrePos;
+vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32,2>> pixelPos, pixelVel;
+vtkm::cont::ArrayHandle<vtkm::Id> pixelIdx;
 int iter_cnt;
 
 }; // class CanvasRayTracer

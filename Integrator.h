@@ -167,9 +167,10 @@ public:
   {
     vtkm::Vec<FieldType, Size> vCur;
 //    eval.incrT(h);
+    out = pos;
     if (eval.Evaluate(pos, field, vCur))
     {
-      out = pos + vCur;
+      out += vCur;
       return true;
     }
     return false;
