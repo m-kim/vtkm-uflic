@@ -170,7 +170,7 @@ public:
     out = pos;
     if (eval.Evaluate(pos, field, vCur))
     {
-      out += vCur;
+      out += vCur * h;
       return true;
     }
     return false;

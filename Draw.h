@@ -14,11 +14,9 @@ public:
   typedef vtkm::Vec<VecComponentType, Size> VecType;
 
   DrawLine(
-        vtkm::Id2 d
-      , vtkm::Float32 _s = 1.0)
+        vtkm::Id2 d)
     :
-      dim(d),
-      stepsize(_s)
+      dim(d)
   {
 
   }
@@ -57,7 +55,7 @@ public:
     if (!outside(p1) && !outside(p2)){
 
 			vtkm::Vec<VecComponentType, Size> p = p1;
-      const vtkm::Vec<VecComponentType, Size> d = (p2 - p) * stepsize;
+      const vtkm::Vec<VecComponentType, Size> d = (p2 - p);
       if (vtkm::Magnitude(d) > 1e-6){
         float N = vtkm::Max(vtkm::Abs(d[0]), vtkm::Abs(d[1]));
         if (N > 0) {
@@ -88,7 +86,6 @@ public:
     }
 	}
 private:
-  const vtkm::Float32 stepsize;
   const vtkm::Id2 dim;
 };
 
@@ -104,11 +101,9 @@ public:
     DrawLineWorkletType;
 
   DrawLineWorklet(
-                  vtkm::Id2 d,
-      vtkm::Float32 _s = 1.0)
+                  vtkm::Id2 d)
     :
       dims(d)
-    ,stepsize(_s)
   {
 
   }
@@ -134,14 +129,13 @@ public:
     typedef typename vtkm::worklet::DispatcherMapField<DrawLineWorkletType>
       DrawLineWorkletDispatchType;
 
-    DrawLineWorkletType drawLineWorklet(dims, stepsize);
+    DrawLineWorkletType drawLineWorklet(dims);
     DrawLineWorkletDispatchType drawLineWorkletDispatch(drawLineWorklet);
     drawLineWorkletDispatch.Invoke(_pl, _pr, _idxArray, _mask, _canvas1, _omega, _canvas0);
   }
 
   ~DrawLineWorklet() {}
 
-  vtkm::Float32 stepsize;
 private:
 
 

@@ -177,8 +177,7 @@ public:
 
   void WriteToCanvas(const vtkm::rendering::raytracing::Ray<vtkm::Float32>& rays,
                                     const vtkm::cont::ArrayHandle<vtkm::Float32>& colors,
-                                    const vtkm::rendering::Camera& camera,
-                                    const vtkm::Float32 stepsize)
+                                    const vtkm::rendering::Camera& camera)
 {
   pixelPos.Allocate(rays.PixelIdx.GetNumberOfValues());
   vtkm::cont::ArrayHandleConstant<vtkm::Id> zero(0, pixelPos.GetNumberOfValues());

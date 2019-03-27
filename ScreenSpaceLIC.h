@@ -57,20 +57,27 @@ public:
       for (int i=0; i<this->texArray.GetNumberOfValues(); i++){
         this->texArray.GetPortalControl().Set(i,rand()%255);
       }
-
       DoNormalize<FieldType> donorm(dim);
       DoSharpen<FieldType> dosharp(dim);
       DoJitter<FieldType> dojitter(dim);
-      DrawLineWorklet<FieldType, VecType, 2>  drawline(dim, stepsize);
+      DrawLineWorklet<FieldType, VecType, 2>  drawline(dim);
       auto  spacing = vtkm::Vec<VecType,2>(1,1);
       for (int loop = 0; loop < loop_cnt; loop++){
         EvalType eval(0, Bounds(0, dim[0], 0, dim[1]), spacing);
-        IntegratorType integrator(eval, 3.0);
-
+        IntegratorType integrator(eval, stepsize);
         ParticleAdvectionWorkletType advect(integrator);
+        resetDispatcher.Invoke(indexArray, sl[loop%this->ttl]);
+
         for (int i=0; i<this->canvasArray[loop%this->ttl].GetNumberOfValues(); i++){
           this->canvasArray[loop%this->ttl].GetPortalControl().Set(i,rand()%255);
         }
+//        for (int i=0; i<512; i++){
+//          for (int j=0; j<512; j++){
+//            this->canvasArray[loop%this->ttl].GetPortalControl().Set(i*512+j, 0);
+//            if (j > 255 && j < 258)
+//              this->canvasArray[loop%this->ttl].GetPortalControl().Set(i*512+j,255);
+//          }
+//        }
         vtkm::cont::ArrayCopy(zero, this->propFieldArray[0]);
         vtkm::cont::ArrayCopy(zero, this->propFieldArray[1]);
         vtkm::cont::ArrayCopy(zero, this->omegaArray);
