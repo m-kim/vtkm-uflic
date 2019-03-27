@@ -60,7 +60,7 @@ int main(int argc, char **argv)
   std::shared_ptr<Reader<VecType, Size>> reader;
 
   if (std::get<0>(ret) == 1){
-    reader = std::shared_ptr<ReaderVTK<VecType, Size>>(new ReaderVTK<VecType, Size>("/home/mkim/vtkm-uflic/BField_2d.vtk", 12));
+    reader = std::shared_ptr<ReaderVTK<VecType, Size>>(new ReaderVTK<VecType, Size>("/home/ybk/Projects/vtkm-uflic/BField_2d.vtk", 12));
     UFLIC<VectorField<VecType,Size>,VecType,Size> uflic;
     uflic.do_print = std::get<3>(ret);
     uflic.run(reader);
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
   else if (std::get<0>(ret) == 2){
     //std::shared_ptr<Reader<VecType, Size,  ReaderPS<VecType, Size,ReaderXGC<VecType,Size>>>> reader(new ReaderPS<VecType, Size, ReaderXGC<VecType,Size>>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_normalized_256_99.vec", vtkm::Id2(256,256), Bounds(0,256,0,256)));
-    reader = std::shared_ptr<ReaderXGC<VecType, Size>>(new ReaderXGC<VecType, Size>("/home/mkim/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), 12));
+    reader = std::shared_ptr<ReaderXGC<VecType, Size>>(new ReaderXGC<VecType, Size>("/home/ybk/Projects/vtkm-uflic/psi2q/2D_packed/psi2D_packed_512_", vtkm::Id2(512,512), Bounds(0,512,0,512), 12));
     UFLIC<VectorField<VecType,Size>,VecType,Size> uflic;
     uflic.do_print = std::get<3>(ret);
     uflic.run(reader);
