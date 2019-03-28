@@ -1,10 +1,12 @@
 #include <vtkm/rendering/Actor.h>
 #include <vtkm/rendering/Scene.h>
 #include <vtkm/worklet/Normalize.h>
+#include <vtkm/cont/DataSetBuilderExplicit.h>
 #include <vtkm/cont/DataSetFieldAdd.h>
 #include <vtkm/io/reader/VTKDataSetReader.h>
 #include <vtkm/rendering/View3D.h>
 #include <vtkm/cont/testing/Testing.h>
+#include <vtkm/io/writer/VTKDataSetWriter.h>
 #include "ReaderUFLIC.h"
 #include "MapperUFLIC.h"
 #include "ViewUFLIC.h"
@@ -114,8 +116,7 @@ int main(){
   view = std::unique_ptr<ViewUFLIC>(new ViewUFLIC(*scene, *mapper, *canvas, *camera, vtkm::rendering::Color(0,0,0,1), vtkm::rendering::Color(1,0,0,1)));
 
   mapper->SetShadingOn(false);
-  mapper->SetStepSize(1000.0);
-  auto ds = readVTKDataSet("/mnt/c/Users/mark/Dropbox/Presentation/ice-train-vel.vtk");
+  auto ds = readVTKDataSet("/home/mark/Projects/ice-train-vel.vtk");
   addField(ds);
   static std::string fieldNm = "pointvar";
 
@@ -125,7 +126,24 @@ int main(){
   view = std::unique_ptr<ViewUFLIC>(new ViewUFLIC(*scene, *mapper, *canvas, *camera, vtkm::rendering::Color(0,0,0,1), vtkm::rendering::Color(1,0,0,1)));
   Render(*view);
 
-  draw(dim, canvas->pixelVel, canvas->pixelIdx, canvas->GetDepthBuffer(), 2, 4, 4);
+  vtkm::cont::ArrayHandle<vtkm::Id> conn;
+  conn.Allocate(dim[0]*dim[1]);
+  vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32, 3>> velField;
+  velField.Allocate(dim[0]*dim[1]);
+  for (int i=0; i<canvas->pixelPos.GetNumberOfValues(); i++){
+    auto val2 = canvas->pixelVel.GetPortalConstControl().Get(i);
+    auto idx = canvas->pixelIdx.GetPortalConstControl().Get(i);
+   vtkm::Vec<vtkm::Float32, 3> fin2(val2[0], val2[1], 0.0);;
+    velField.GetPortalControl().Set(idx, fin2);
+    conn.GetPortalControl().Set(idx, idx);
+  }
+
+  vtkm::cont::DataSetBuilderExplicit dsb;
+  vtkm::cont::DataSet outds = dsb.Create(velField, vtkm::CellShapeTagVertex(), 1, conn);
+
+  vtkm::io::writer::VTKDataSetWriter writer("output.vtk");
+  writer.WriteDataSet(outds);
+//  draw(dim, canvas->pixelVel, canvas->pixelIdx, canvas->GetDepthBuffer(), 4, 10, 10);
 
 return 0;
 }
