@@ -116,7 +116,7 @@ int main(){
   view = std::unique_ptr<ViewUFLIC>(new ViewUFLIC(*scene, *mapper, *canvas, *camera, vtkm::rendering::Color(0,0,0,1), vtkm::rendering::Color(1,0,0,1)));
 
   mapper->SetShadingOn(false);
-  auto ds = readVTKDataSet("/home/mark/Projects/ice-train-vel.vtk");
+  auto ds = readVTKDataSet("/home/mark/external/Dropbox/Presentation/ice-train-vel.vtk");
   addField(ds);
   static std::string fieldNm = "pointvar";
 
@@ -130,12 +130,11 @@ int main(){
   conn.Allocate(dim[0]*dim[1]);
   vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32, 3>> velField;
   velField.Allocate(dim[0]*dim[1]);
-  for (int i=0; i<canvas->pixelPos.GetNumberOfValues(); i++){
+  for (int i=0; i<canvas->pixelVel.GetNumberOfValues(); i++){
     auto val2 = canvas->pixelVel.GetPortalConstControl().Get(i);
-    auto idx = canvas->pixelIdx.GetPortalConstControl().Get(i);
    vtkm::Vec<vtkm::Float32, 3> fin2(val2[0], val2[1], 0.0);;
-    velField.GetPortalControl().Set(idx, fin2);
-    conn.GetPortalControl().Set(idx, idx);
+    velField.GetPortalControl().Set(i, fin2);
+    conn.GetPortalControl().Set(i, i);
   }
 
   vtkm::cont::DataSetBuilderExplicit dsb;
