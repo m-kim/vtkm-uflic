@@ -4,10 +4,14 @@ mat = textscan(fid, '%f %f %*f', num{1});
 u = mat{1};
 v = mat{2};
 fclose(fid)
-[x,y] = meshgrid(0:1.0/511.0:1, 0:1.0/511.0:1);
-u = reshape(u, 512,512);
-v = reshape(v, 512,512);
+
+spacing = 8
+[x,y] = meshgrid(0:spacing:511, 0:spacing:511);
+uprime = reshape(u, 512,512);
+vprime = reshape(v, 512,512);
+uprime = uprime(1:spacing:end, 1:spacing:end);
+vprime = vprime(1:spacing:end, 1:spacing:end);
 f = figure('visible', 'off')
-quiver(x,y,u,v);
+quiver(x,y,uprime,vprime);
 filename = 'screenspace.png'
 print(filename)
