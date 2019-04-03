@@ -1,6 +1,7 @@
 #ifndef UFLIC_H
 #define UFLIC_H
 #include <chrono>
+#include <vtkm/cont/ArrayCopy.h>
 #include "Evaluator.h"
 #include "Integrator.h"
 #include "ParticleAdvection.h"
@@ -13,23 +14,6 @@
 #include "RandomArray.h"
 #include "Reader.h"
 
-class zero_voxel : public vtkm::worklet::WorkletMapField
-{
-public:
-  typedef void ControlSignature(FieldIn<>, FieldOut<>);
-  typedef void ExecutionSignature(_1, WorkIndex, _2);
-  //
-  VTKM_CONT
-  zero_voxel() {}
-
-  template <typename T>
-  VTKM_EXEC_CONT void operator()(const vtkm::Id&,
-                                 const vtkm::Id& vtkmNotUsed(index),
-                                 T& voxel_value) const
-  {
-    voxel_value = T(0);
-  }
-};
 
 template<typename FieldType, vtkm::Id Size>
 class ResetParticles : public vtkm::worklet::WorkletMapField
@@ -161,15 +145,14 @@ public:
           canvasArray[loop%ttl].GetPortalControl().Set(i,rand()%255);
           }
       #endif
-
-          vtkm::worklet::DispatcherMapField<zero_voxel> zeroDispatcher;
-          zeroDispatcher.Invoke(indexArray, propFieldArray[0]);
-          zeroDispatcher.Invoke(indexArray, propFieldArray[1]);
-          zeroDispatcher.Invoke(indexArray, omegaArray);
+          vtkm::cont::ArrayHandleConstant<FieldType> zero(0, propFieldArray[0].GetNumberOfValues());
+          vtkm::cont::ArrayCopy(zero, propFieldArray[0]);
+          vtkm::cont::ArrayCopy(zero, propFieldArray[1]);
+          vtkm::cont::ArrayCopy(zero, omegaArray);
 
           for (int i = 0; i < vtkm::Min(ttl, loop+1); i++) {
           advect.Run(sl[i], sr[i], vecArray);
-          drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, mask, sl[i], sr[i]);
+          drawline.Run(canvasArray[i], propFieldArray[0], omegaArray, mask, indexArray, sl[i], sr[i]);
           }
 
           sr.swap(sl);
