@@ -39,10 +39,13 @@ public:
                                 WholeArrayInOut<>,
 #endif
 
-                                WholeArrayInOut<>);
+                                WholeArrayIn<>);
   typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, _7);
 
-  template<typename AtomicArrayType, typename MaskArrayType, typename IdxType>
+  template<typename AtomicArrayType,
+           typename MaskArrayType,
+           typename IdxType,
+           typename PrevCanvasArray>
   VTKM_EXEC
   void operator()(
                   const VecType& p1,
@@ -51,7 +54,7 @@ public:
                   MaskArrayType &mask,
                   AtomicArrayType &canvas,
                   AtomicArrayType &omega,
-                  const AtomicArrayType &valarray) const {
+                  const PrevCanvasArray &valarray) const {
     if (!outside(p1) && !outside(p2)){
 
 			vtkm::Vec<VecComponentType, Size> p = p1;

@@ -2,6 +2,7 @@
 #define UFLIC_H
 #include <chrono>
 #include <vtkm/cont/ArrayCopy.h>
+#include <vtkm/BinaryOperators.h>
 #include "Evaluator.h"
 #include "Integrator.h"
 #include "ParticleAdvection.h"
@@ -13,7 +14,7 @@
 #include "RandomMapField.h"
 #include "RandomArray.h"
 #include "Reader.h"
-
+#include "Quiver.h"
 
 template<typename FieldType, vtkm::Id Size>
 class ResetParticles : public vtkm::worklet::WorkletMapField
@@ -31,7 +32,7 @@ public:
   {
     vtkm::Id y = idx / dim;
     vtkm::Id x = idx % dim;
-    out = VecType(x + 0.5, y + 0.5);
+    out = VecType(x, y);
   }
 
   vtkm::Id dim;
@@ -217,6 +218,27 @@ public:
       of.close();
     }
 
+    template<typename VecArrayType>
+    static void saveQuiver(
+        vtkm::Id2 dim,
+        VecArrayType &vec
+        )
+    {
+      using CanvasArrayType = typename vtkm::cont::ArrayHandle<FieldType>;
+      vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), vtkm::Id(1), dim[0]*dim[1]);
+      vtkm::worklet::DispatcherMapField<ResetParticles<vtkm::Float32, 2>> resetDispatcher(dim[0]);
+
+      typename std::remove_reference<decltype(vec)>::type pl;
+      pl.Allocate(dim[0]*dim[1]);
+      resetDispatcher.Invoke(indexArray, pl);
+
+      Quiver<VecArrayType, CanvasArrayType, vtkm::Id2> q(dim);
+      CanvasArrayType canvas;
+      canvas.Allocate(dim[0] * dim[1]);
+      q.draw(pl, vec, canvas);
+      saveAs("output.pnm", canvas, dim[0], dim[1]);
+
+    }
     bool do_print;
     std::vector<ArrayType> canvasArray;
     ArrayType propFieldArray[2],result, omegaArray, texArray;

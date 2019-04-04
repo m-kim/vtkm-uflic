@@ -15,6 +15,7 @@
 #include "UFLIC.h"
 
 #include "Reader.h"
+#include "Quiver.h"
 
 #include <iostream>
 #include <fstream>
@@ -80,6 +81,10 @@ int main(int argc, char **argv)
     reader = std::shared_ptr<ReaderCalc<VecType, Size>>(new ReaderCalc<VecType, Size>("XGC_", vtkm::Id2(x,y), Bounds(0,x,0,y), vtkm::Vec<VecType,Size>(2,1), 12));
     UFLIC<DoubleGyreField<VecType,Size>,VecType,Size> uflic;
     uflic.do_print = std::get<3>(ret);
-    uflic.run(reader);
+    //uflic.run(reader);
+    vtkm::cont::ArrayHandle<vtkm::Vec<VecType,Size>> vec;
+    vec.Allocate(x*y);
+    reader->next(vec);
+    uflic.saveQuiver(vtkm::Id2(x,y), vec);
   }
 }
