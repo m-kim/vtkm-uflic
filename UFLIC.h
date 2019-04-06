@@ -25,17 +25,21 @@ public:
   typedef void ExecutionSignature(_1, _2);
   //
   VTKM_CONT
-  ResetParticles(vtkm::Id &d) : dim(d) {}
+  ResetParticles(vtkm::Id d,
+                 vtkm::Id2 s = vtkm::Vec<vtkm::Id,2>(1,1))
+    : dim(d)
+    , span(s) {}
 
   VTKM_EXEC_CONT void operator()(const vtkm::Id&idx,
                                  VecType& out) const
   {
-    vtkm::Id y = idx / dim;
-    vtkm::Id x = idx % dim;
+    vtkm::Id y = (idx / dim) * span[1];
+    vtkm::Id x = (idx % dim) * span[0];
     out = VecType(x, y);
   }
 
   vtkm::Id dim;
+  vtkm::Id2 span;
 };
 
 class SetRandomArray : public RandomWorklet
@@ -224,18 +228,30 @@ public:
         VecArrayType &vec
         )
     {
-      using CanvasArrayType = typename vtkm::cont::ArrayHandle<FieldType>;
-      vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), vtkm::Id(1), dim[0]*dim[1]);
-      vtkm::worklet::DispatcherMapField<ResetParticles<vtkm::Float32, 2>> resetDispatcher(dim[0]);
+      vtkm::Id2 spacing(8,8);
+      vtkm::cont::ArrayHandleCounting<vtkm::Id> indexArray(vtkm::Id(0), vtkm::Id(1), dim[0]/spacing[0]*dim[1]/spacing[1]);
 
+      vtkm::worklet::DispatcherMapField<ResetParticles<vtkm::Float32, 2>> resetDispatcher(ResetParticles<vtkm::Float32,2>(dim[0]/spacing[0], spacing));
       typename std::remove_reference<decltype(vec)>::type pl;
-      pl.Allocate(dim[0]*dim[1]);
+      pl.Allocate(dim[0]/spacing[0]*dim[1]/spacing[1]);
       resetDispatcher.Invoke(indexArray, pl);
 
+
+      saveQuiver(dim, pl, vec, spacing);
+    }
+    template<typename VecArrayType>
+    static void saveQuiver(
+        vtkm::Id2 dim,
+        VecArrayType &pl,
+        VecArrayType &vec,
+        vtkm::Id2 spacing
+        )
+    {
+      using CanvasArrayType = typename vtkm::cont::ArrayHandle<FieldType>;
       Quiver<VecArrayType, CanvasArrayType, vtkm::Id2> q(dim);
       CanvasArrayType canvas;
       canvas.Allocate(dim[0] * dim[1]);
-      q.draw(pl, vec, canvas);
+      q.draw(pl, vec, canvas, spacing);
       saveAs("output.pnm", canvas, dim[0], dim[1]);
 
     }
