@@ -237,18 +237,19 @@ public:
       resetDispatcher.Invoke(indexArray, pl);
 
 
-      saveQuiver(dim, pl, vec, spacing);
+      saveQuiver(dim, pl, indexArray, vec, spacing);
     }
-    template<typename VecArrayType>
+    template<typename VecArrayType, typename IdxArrayType>
     static void saveQuiver(
         vtkm::Id2 dim,
         VecArrayType &pl,
+        IdxArrayType &idxArray,
         VecArrayType &vec,
         vtkm::Id2 spacing
         )
     {
       using CanvasArrayType = typename vtkm::cont::ArrayHandle<FieldType>;
-      Quiver<VecArrayType, CanvasArrayType, vtkm::Id2> q(dim);
+      Quiver<VecArrayType,CanvasArrayType, vtkm::Id2> q(dim);
       CanvasArrayType canvas;
       canvas.Allocate(dim[0] * dim[1]);
       q.draw(pl, vec, canvas, spacing);

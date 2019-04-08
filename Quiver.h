@@ -35,25 +35,24 @@ struct Stretch
   }
 };
 
-template<typename FieldType, vtkm::Id Size>
+
 class CreateVec : public vtkm::worklet::WorkletMapField
 {
 public:
-  typedef  vtkm::Vec<FieldType, Size> VecType;
   typedef void ControlSignature(FieldIn<>, WholeArrayIn<>, FieldOut<>, FieldOut<>);
   typedef void ExecutionSignature(_1, _2, _3, _4);
   //
   VTKM_CONT
   CreateVec(vtkm::Id &d) : dim(d) {}
 
-  template<typename VecArrayType>
+  template<typename VecArrayType, typename VecType>
   VTKM_EXEC_CONT void operator()(const VecType pt,
+                                 const VecArrayType &vecArray,
                                  vtkm::Id &idx,
-                                 VecArrayType &vecArray,
                                  VecType& out) const
   {
-    idx = pt.y * dim + pt.x;
-    out = vecArray.Get(idx);
+    idx = pt[1] * dim + pt[0];
+    out = pt + vecArray.Get(idx);
   }
 
   vtkm::Id dim;
@@ -88,6 +87,7 @@ public:
     {
       using CanvasType = typename std::remove_reference<decltype(canvas)>::type;
       using CanvasValueType = typename CanvasType::ValueType;
+      using CreateVecDispatchType = typename vtkm::worklet::DispatcherMapField<CreateVec>;
 
       typedef typename vtkm::worklet::DispatcherMapField<DrawLineWorkletType>
         DrawLineWorkletDispatchType;
@@ -108,9 +108,14 @@ public:
 
       typename std::remove_reference<decltype(pl)>::type pr;
       pr.Allocate(pl.GetNumberOfValues());
-      vtkm::cont::Algorithm::Transform(pl, vec, pr, vtkm::Sum());
+      //vtkm::cont::Algorithm::Transform(pl, vec, pr, vtkm::IndexSum());
+      vtkm::cont::ArrayHandle<vtkm::Id> idxArray;
+      idxArray.Allocate( pl.GetNumberOfValues());
 
-      vtkm::cont::ArrayHandleCounting<vtkm::Int32> idxArray(0,1, pr.GetNumberOfValues());
+      CreateVec createVec(dim[0]);
+      CreateVecDispatchType createVecDispatch(createVec);
+      createVecDispatch.Invoke(pl, vec, idxArray, pr);
+
       vtkm::cont::ArrayHandle<vtkm::Int8> mask;
       vtkm::cont::ArrayHandleConstant<CanvasValueType> origCanvas(255, canvas.GetNumberOfValues());
 
