@@ -1,6 +1,7 @@
 #ifndef UFLIC_H
 #define UFLIC_H
 #include <chrono>
+#include <functional>
 #include <vtkm/cont/ArrayCopy.h>
 #include <vtkm/BinaryOperators.h>
 #include "Evaluator.h"
@@ -82,6 +83,12 @@ public:
     , do_print(false)
     {
       canvasArray.resize(ttl);
+
+      callback = std::bind(&UFLIC::saveAs,
+                           std::placeholders::_1,
+                           std::placeholders::_2,
+                           std::placeholders::_3,
+                           std::placeholders::_4);
     }
     void run( std::shared_ptr<Reader<VecType, Size>> reader)
     {
@@ -167,9 +174,9 @@ public:
           if (do_print){
           std::stringstream fn;
           fn << "uflic-" << loop << ".pnm";
-          saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+          callback(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
           }
-
+          result = propFieldArray[1];
           //REUSE omegaArray as a temporary cache to sharpen
           dosharp.Run(propFieldArray[1], omegaArray);
           dojitter.Run(omegaArray, texArray, canvasArray[(loop) % ttl]);
@@ -181,10 +188,12 @@ public:
       result = propFieldArray[1];
       auto t1 = std::chrono::high_resolution_clock::now();
 
-      std::cout << "Finished dt: " << dt << " cnt: " << loop_cnt << " time: " << std::chrono::duration<double>(t1-t0).count() << " s" << std::endl;
-      std::stringstream fn;
-      fn << "uflic-final" << ".pnm";
-      saveAs(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+      if (do_print){
+          std::cout << "Finished dt: " << dt << " cnt: " << loop_cnt << " time: " << std::chrono::duration<double>(t1-t0).count() << " s" << std::endl;
+          std::stringstream fn;
+          fn << "uflic-final" << ".pnm";
+          callback(fn.str().c_str(), propFieldArray[1], dim[0], dim[1]);
+      }
 
 
       //vtkm::rendering::Mapper mapper;
@@ -199,9 +208,8 @@ public:
       //vtkm::rendering::View2D view;
 
     }
-    template<typename VecComponentType>
     static void saveAs(std::string fileName,
-                vtkm::cont::ArrayHandle<VecComponentType > canvasArray,
+                vtkm::cont::ArrayHandle<vtkm::Int32 > canvasArray,
                 vtkm::Id Width, vtkm::Id Height) 
     {
       std::ofstream of(fileName.c_str(), std::ios_base::binary | std::ios_base::out);
@@ -211,9 +219,9 @@ public:
       {
           for (vtkm::Id xIndex = 0; xIndex < Width; xIndex++)
           {
-          VecComponentType val = canvasArray.GetPortalConstControl().Get(yIndex * Width + xIndex);
+          vtkm::Int32 val = canvasArray.GetPortalConstControl().Get(yIndex * Width + xIndex);
 
-          vtkm::Vec<VecComponentType, 4> tuple(val, val, val, val);
+          vtkm::Vec<vtkm::Int32, 4> tuple(val, val, val, val);
           of << (unsigned char)(tuple[0]);
           of << (unsigned char)(tuple[1]);
           of << (unsigned char)(tuple[2]);
@@ -261,5 +269,8 @@ public:
     ArrayType propFieldArray[2],result, omegaArray, texArray;
     const vtkm::IdComponent ttl;
 
+    std::function<void(std::string fileName,
+                       vtkm::cont::ArrayHandle<vtkm::Int32 > canvasArray,
+                       vtkm::Id Width, vtkm::Id Height)> callback;
 };
 #endif
